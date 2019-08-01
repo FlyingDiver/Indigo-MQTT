@@ -2,11 +2,7 @@
 # -*- coding: utf-8 -*-
 ####################
 
-import time
-import socket
-import json
 import logging
-import requests
 from mqtt_broker import Broker
 
 kCurDevVersCount = 0        # current version of plugin devices
@@ -31,6 +27,7 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"Starting MQTT Client")
 
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
+        self.triggers = {}
         
                     
     def shutdown(self):
@@ -42,6 +39,9 @@ class Plugin(indigo.PluginBase):
         try:
             while True:
             
+                for broker in self.brokers.values():
+                    broker.loop()
+
                 self.sleep(1.0)
 
         except self.stopThread:
@@ -109,7 +109,7 @@ class Plugin(indigo.PluginBase):
     def deviceStopComm(self, device):
         self.logger.debug(u"{}: Stopping Device".format(device.name))
         if device.deviceTypeId == "mqttBroker":
-            del self.weatherlinks[device.id]
+            del self.brokers[device.id]
             
             
     def getDeviceDisplayStateId(self, device):
@@ -123,6 +123,69 @@ class Plugin(indigo.PluginBase):
 
         return status_state
     
+    ########################################
+    # Trigger (Event) handling 
+    ########################################
+
+    def triggerStartProcessing(self, trigger):
+        self.logger.debug("Adding Trigger %s (%d)" % (trigger.name, trigger.id))
+        assert trigger.id not in self.triggers
+        self.triggers[trigger.id] = trigger
+
+    def triggerStopProcessing(self, trigger):
+        self.logger.debug("Removing Trigger %s (%d)" % (trigger.name, trigger.id))
+        assert trigger.id in self.triggers
+        del self.triggers[trigger.id]
+
+    def triggerCheck(self, device):
+        self.logger.debug("triggerCheck: Checking Triggers for Device %s (%d)" % (device.name, device.id))
+
+        for triggerId, trigger in sorted(self.triggers.iteritems()):
+            self.logger.debug("\tChecking Trigger %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+
+            if trigger.pluginProps["brokerID"] == str(device.id):
+
+                if trigger.pluginTypeId == "regexMatch":
+                    pattern = trigger.pluginProps["regexPattern"]
+                    cPattern = re.compile(pattern)
+                    match = cPattern.search(device.states["last_topic"])
+                    if match:
+                        regexMatch = match.group()
+                        self.logger.debug("\t\tExecuting Trigger %s (%d), match: %s" % (trigger.name, trigger.id, regexMatch))
+                        indigo.trigger.execute(trigger)
+                    else:
+                        self.logger.debug("\t\tNo Match for Trigger %s (%d)" % (trigger.name, trigger.id))
+                        
+                elif trigger.pluginTypeId == "stringMatch":
+                    pattern = trigger.pluginProps["stringPattern"]
+                    if device.states["last_topic"] == pattern:
+                        self.logger.debug("\t\tExecuting Trigger %s (%d)" % (trigger.name, trigger.id))
+                        indigo.trigger.execute(trigger)
+                    else:
+                        self.logger.debug("\t\tNo Match for Trigger %s (%d)" % (trigger.name, trigger.id))
+
+                else:
+                    self.logger.debug(
+                        "\tUnknown Trigger Type %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+
+            else:
+                self.logger.debug("\t\tSkipping Trigger %s (%s), wrong device: %s" % (trigger.name, trigger.id, device.id))
+
+    ########################################
+    # Plugin Actions object callbacks (pluginAction is an Indigo plugin action instance)
+    ########################################
+
+    def publishMessageAction(self, pluginAction, brokerDevice, callerWaitingForResult):
+        broker = self.brokers[brokerDevice.id]
+
+        self.logger.debug(u"publishMessageAction queueing message {} to {}".format(pluginAction, broker.device.name))
+        topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
+        payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
+        qos = int(pluginAction.props["qos"])
+        retain = bool(pluginAction.props["retain"])
+
+        broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+        
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
         retList = []

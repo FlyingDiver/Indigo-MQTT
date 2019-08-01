@@ -1,4 +1,37 @@
 <?xml version="1.0"?>
 <Actions>
 	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=316</SupportURL>
+
+    <Action id="publish" deviceFilter="self.mqttBroker">
+        <Name>Publish Message</Name>
+        <CallbackMethod>publishMessageAction</CallbackMethod>
+        <ConfigUI>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+            <Field id="payload" type="textfield">
+                <Label>Payload:</Label>
+            </Field>
+        	<Field id="qos" type="menu" defaultValue="0">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+        	<Field id="retain" type="menu" defaultValue="0">
+        		<Label>Retain:</Label>
+        		<List>
+        			<Option value="0">False</Option>
+        			<Option value="1">True</Option>
+        		</List>
+        	</Field>
+            <Field id="simpleSeparator2" type="separator"/>
+            <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Variable and Device State Substitution is enabled for all fields. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
+            </Field>
+        </ConfigUI>
+    </Action>
+    
 </Actions>

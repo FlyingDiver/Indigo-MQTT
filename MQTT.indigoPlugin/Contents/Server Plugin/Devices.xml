@@ -10,12 +10,36 @@
             <Field id="port" type="textfield" defaultValue="1883" tooltip="Port number for MQTT Broker.">
                 <Label>Port:</Label>
             </Field>
+            <Field id="protocol" type="menu" defaultValue="4">
+        		<Label>MQTT Protocol:</Label>
+        		<List>
+        			<Option value="4">MQTTv311</Option>
+        			<Option value="3">MQTTv31</Option>
+        		</List>
+        	</Field>
+            <Field id="transport" type="menu" defaultValue="tcp">
+        		<Label>Transport Protocol:</Label>
+        		<List>
+        			<Option value="tcp">TCP</Option>
+        			<Option value="websockets">WebSockets</Option>
+        		</List>
+        	</Field>
         </ConfigUI> 
         <States>
             <State id="status">
                 <ValueType>String</ValueType>
                 <TriggerLabel>Status</TriggerLabel>
                 <ControlPageLabel>Status</ControlPageLabel>
+            </State>
+            <State id="last_topic">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Topic</TriggerLabel>
+                <ControlPageLabel>Topic</ControlPageLabel>
+            </State>
+            <State id="last_payload">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Payload</TriggerLabel>
+                <ControlPageLabel>Topic</ControlPageLabel>
             </State>
         </States>
         <UiDisplayStateId>status</UiDisplayStateId>
