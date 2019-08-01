@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<Devices>
+	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=316</SupportURL>
+    <Device type="custom" id="mqttBroker">
+        <Name>MQTT Broker</Name>
+        <ConfigUI>  
+            <Field id="address" type="textfield"  defaultValue="localhost" tooltip="Enter IP address or Hostname of MQTT Broker.">
+                <Label>IP Address or Hostname:</Label>
+            </Field>
+            <Field id="port" type="textfield" defaultValue="1883" tooltip="Port number for MQTT Broker.">
+                <Label>Port:</Label>
+            </Field>
+        </ConfigUI> 
+        <States>
+            <State id="status">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Status</TriggerLabel>
+                <ControlPageLabel>Status</ControlPageLabel>
+            </State>
+        </States>
+        <UiDisplayStateId>status</UiDisplayStateId>
+    </Device>       
+ </Devices>
