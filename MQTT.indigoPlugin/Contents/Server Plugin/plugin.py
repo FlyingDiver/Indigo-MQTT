@@ -34,9 +34,8 @@ class Plugin(indigo.PluginBase):
         self.triggers = {}
         self.server = None
         
-        
         if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
-            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '--daemon', '-p', '1883'])        
+            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '-p', '1883'])        
      
                     
     def shutdown(self):

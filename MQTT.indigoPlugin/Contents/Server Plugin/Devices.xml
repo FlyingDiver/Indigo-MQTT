@@ -24,6 +24,16 @@
         			<Option value="websockets">WebSockets</Option>
         		</List>
         	</Field>
+            <Field id="username" type="textfield">
+                <Label>Username:</Label>
+            </Field>
+            <Field id="password" type="textfield" secure="true">
+                <Label>Password:</Label>
+            </Field>
+            <Field type="checkbox" id="useTLS">
+                <Label>Use SSL/TLS:</Label>
+            </Field>
+
         </ConfigUI> 
         <States>
             <State id="status">
