@@ -85,9 +85,11 @@ class Broker(object):
         self.logger.debug(u"{}: Connected with result code {}".format(self.device.name, rc))
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        for topic in self.device.pluginProps[u'subscriptions']:
-            client.subscribe(topic)
-            self.logger.debug(u"{}: Subscribing to: {}".format(self.device.name, topic))
+        topics = self.device.pluginProps.get(u'subscriptions', None)
+        if topics:
+            for topic in topics:
+                client.subscribe(topic)
+                self.logger.debug(u"{}: Subscribing to: {}".format(self.device.name, topic))
             
         stateList = [
             { 'key':'status',   'value':  "Connected"},

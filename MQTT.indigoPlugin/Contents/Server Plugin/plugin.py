@@ -132,13 +132,6 @@ class Plugin(indigo.PluginBase):
                 return True           
                 
         return False
-
-    def getDeviceDisplayStateId(self, device):
-        try:
-            status_state = device.pluginProps['status_state']
-        except:
-            status_state = indigo.PluginBase.getDeviceDisplayStateId(self, device)
-        return status_state
     
     ########################################
     # Trigger (Event) handling 
