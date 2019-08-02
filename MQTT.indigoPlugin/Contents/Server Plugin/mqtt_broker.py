@@ -50,7 +50,6 @@ class Broker(object):
             self.device.updateStatesOnServer(stateList)
             self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
-            
         
     def __del__(self):
     
@@ -70,10 +69,12 @@ class Broker(object):
         self.client.publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, qos=0):
+        self.logger.debug(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
         self.client.subscribe(topic, qos)
 
     def unsubscribe(self, topic):
-        self.client.publish(topic)
+        self.logger.debug(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
+        self.client.unsubscribe(topic)
 
 
     ################################################################################
@@ -83,10 +84,11 @@ class Broker(object):
     def on_connect(self, client, userdata, flags, rc):
         self.logger.debug(u"{}: Connected with result code {}".format(self.device.name, rc))
 
-        # Subscribing in on_connect() means that if we lose the connection and
-        # reconnect then subscriptions will be renewed.
-#        client.subscribe("#")
-
+        # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
+        for topic in self.device.pluginProps[u'subscriptions']:
+            client.subscribe(topic)
+            self.logger.debug(u"{}: Subscribing to: {}".format(self.device.name, topic))
+            
         stateList = [
             { 'key':'status',   'value':  "Connected"},
         ]
@@ -118,5 +120,5 @@ class Broker(object):
         self.logger.debug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, granted_qos))
 
     def on_unsubscribe(self, client, userdata, mid):
-        self.logger.debug(u"{}: Subscribe complete: {}".format(self.device.name, mid))
+        self.logger.debug(u"{}: Unsubscribe complete: {}".format(self.device.name, mid))
 

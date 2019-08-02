@@ -10,7 +10,18 @@
                 <Label>Topic:</Label>
             </Field>
             <Field id="payload" type="textfield">
-                <Label>Payload:</Label>
+                <Label>Payload:
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </Label>
             </Field>
         	<Field id="qos" type="menu" defaultValue="0">
         		<Label>QoS Level:</Label>
@@ -46,7 +57,7 @@
                 <List method="getProtocolList" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
             </Field>
-			<Field id="baseDevice" type="menu">
+			<Field id="device" type="menu">
 				<Label>Device to Publish:</Label>
 				<List method="getProtocolDevices" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
@@ -107,6 +118,11 @@
                 <Label>Variable and Device State Substitution is enabled for the topic. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
             </Field>
         </ConfigUI>
+    </Action>
+
+    <Action id="clear_subscriptions" deviceFilter="self.mqttBroker">
+        <Name>Clear all Topic Subscriptions</Name>
+        <CallbackMethod>clearAllSubscriptionsAction</CallbackMethod>
     </Action>
     
 </Actions>

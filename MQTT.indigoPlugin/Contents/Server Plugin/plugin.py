@@ -3,13 +3,14 @@
 ####################
 
 import os
+import subprocess
 import plistlib
 import json
 import logging
+
 from mqtt_broker import Broker
 
 kCurDevVersCount = 0        # current version of plugin devices
-        
         
 ################################################################################
 class Plugin(indigo.PluginBase):
@@ -27,15 +28,22 @@ class Plugin(indigo.PluginBase):
         self.indigo_log_handler.setLevel(self.logLevel)
 
     def startup(self):
-        self.logger.info(u"Starting MQTT Client")
+        self.logger.info(u"Starting MQTT")
 
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
+        self.server = None
         
+        
+        if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
+            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '--daemon', '-p', '1883'])        
+     
                     
     def shutdown(self):
-        self.logger.info(u"Shutting down MQTT Client")
+        self.logger.info(u"Shutting down MQTT")
 
+        if self.server:
+            self.server.kill()
 
     def runConcurrentThread(self):
 
@@ -76,7 +84,7 @@ class Plugin(indigo.PluginBase):
             except:
                 self.logLevel = logging.INFO
             self.indigo_log_handler.setLevel(self.logLevel)
-            self.logger.debug(u"MQTT Client logLevel = " + str(self.logLevel))
+            self.logger.debug(u"MQTT logLevel = " + str(self.logLevel))
 
 
     ########################################
@@ -99,32 +107,37 @@ class Plugin(indigo.PluginBase):
 
         device.stateListOrDisplayStateIdChanged()
                 
-        if device.deviceTypeId == "mqttBroker":
- 
+        if device.deviceTypeId == "mqttBroker": 
             self.brokers[device.id] = Broker(device)
-            device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-            self.logger.debug(u"{}: subscriptions:\n{}".format(device.name, device.pluginProps[u'subscriptions']))
-
+            
         else:
             self.logger.warning(u"{}: Invalid device type: {}".format(device.name, device.deviceTypeId))
-
-            
+        
     
     def deviceStopComm(self, device):
         self.logger.debug(u"{}: Stopping Device".format(device.name))
         if device.deviceTypeId == "mqttBroker":
             del self.brokers[device.id]
-            
-            
+        
+    def didDeviceCommPropertyChange(self, origDev, newDev):
+    
+        if newDev.deviceTypeId == "mqttBroker":
+            if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
+                return True           
+            if origDev.pluginProps.get('port', None) != newDev.pluginProps.get('port', None):
+                return True           
+            if origDev.pluginProps.get('protocol', None) != newDev.pluginProps.get('protocol', None):
+                return True           
+            if origDev.pluginProps.get('transport', None) != newDev.pluginProps.get('transport', None):
+                return True           
+                
+        return False
+
     def getDeviceDisplayStateId(self, device):
-            
         try:
             status_state = device.pluginProps['status_state']
         except:
             status_state = indigo.PluginBase.getDeviceDisplayStateId(self, device)
-            
-        self.logger.debug(u"{}: getDeviceDisplayStateId returning: {}".format(device.name, status_state))
-
         return status_state
     
     ########################################
@@ -193,7 +206,7 @@ class Plugin(indigo.PluginBase):
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         qos = int(pluginAction.props["qos"])
         retain = bool(pluginAction.props["retain"])
-        pubDevice = indigo.devices[int(pluginAction.props["baseDevice"])]
+        pubDevice = indigo.devices[int(pluginAction.props["device"])]
         payload = {}
         payload['name'] = pubDevice.name
         payload['id'] =   pubDevice.id
@@ -218,8 +231,8 @@ class Plugin(indigo.PluginBase):
 
     def addSubscription(self, brokerID, topic, qos):
         broker = self.brokers[brokerID]
-        broker.subscribe(topic=topic, qos=qos)
         self.logger.debug(u"{}: addSubscription {} ({})".format(broker.device.name, topic, qos))
+        broker.subscribe(topic=topic, qos=qos)
         
         updatedPluginProps = broker.device.pluginProps
         if not 'subscriptions' in updatedPluginProps:
@@ -245,7 +258,7 @@ class Plugin(indigo.PluginBase):
     def delSubscription(self, brokerID, topic):
         broker = self.brokers[brokerID]
         broker.unsubscribe(topic=topic)
-        self.logger.debug(u"{}: delSubscriptionAction {}".format(broker.device.name, topic))
+        self.logger.debug(u"{}: delSubscription {}".format(broker.device.name, topic))
         
         updatedPluginProps = broker.device.pluginProps
         if not 'subscriptions' in updatedPluginProps:
@@ -260,6 +273,26 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"{}: subscriptions after update :\n{}".format(broker.device.name, updatedPluginProps[u'subscriptions']))
         broker.device.replacePluginPropsOnServer(updatedPluginProps)
 
+    def clearAllSubscriptionsAction(self, pluginAction, brokerDevice, callerWaitingForResult):
+        self.clearAllSubscriptions(brokerDevice.id)
+
+    def clearAllSubscriptionsMenu(self, valuesDict, typeId):
+        deviceId = int(valuesDict["brokerID"])
+        self.clearAllSubscriptions(deviceId)
+        return True
+    
+    def clearAllSubscriptions(self, brokerID):
+        broker = self.brokers[brokerID]
+        for topic in broker.device.pluginProps[u'subscriptions']:
+            self.delSubscription(brokerID, topic)
+    
+    def printSubscriptionsMenu(self, valuesDict, typeId):
+        broker = self.brokers[int(valuesDict["brokerID"])]
+        self.logger.info(u"{}: Current topic subscriptions:".format(broker.device.name))
+        for topic in broker.device.pluginProps[u'subscriptions']:
+            self.logger.info(u"{}:\t\t{}".format(broker.device.name, topic))
+        return True
+    
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
         retList = []

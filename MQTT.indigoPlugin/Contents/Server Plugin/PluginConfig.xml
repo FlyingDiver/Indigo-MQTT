@@ -12,6 +12,12 @@
 			<Option value="50">Critical Errors Only</Option>
 		</List>
 	</Field>			
+
+	<Field type="checkbox" id="runMQTTServer">
+		<Label>Run MQTT Server:</Label>
+		<Description>(requires plugin restart)</Description>
+	</Field>
+
 	<Field type="checkbox" id="showDebugInfo">
 		<Label>Enable library debugging:</Label>
 		<Description>(not recommended, requires plugin restart)</Description>
