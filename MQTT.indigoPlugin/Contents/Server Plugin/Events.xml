@@ -2,6 +2,22 @@
 <Events>
     <SupportURL>http://forums.indigodomo.com/viewtopic.php?f=316</SupportURL>
 
+    <Event id="stringMatch">
+        <Name>Topic String Match</Name>
+        <ConfigUI>
+            <Field id="brokerID" type="menu">
+                <Label>Select Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>            
+            <Field id="stringPattern" type="textfield">
+                <Label>String to match:</Label>
+            </Field>
+            <Field id="stringNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>String Match is an exact match to the Topic.  For substring matches, use the RegEx Pattern Match Event.</Label>
+            </Field>
+        </ConfigUI>
+    </Event>
+
     <Event id="regexMatch">
         <Name>Topic RegEx Pattern Match</Name>
         <ConfigUI>
@@ -15,21 +31,6 @@
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="regexNote" type="label" fontSize="small" fontColor="darkgray">
                 <Label>For information on how to construct regular expressions, visit http://www.regular-expressions.info/tutorial.html</Label>
-            </Field>
-        </ConfigUI>
-    </Event>
-    <Event id="stringMatch">
-        <Name>Topic String Match</Name>
-        <ConfigUI>
-            <Field id="brokerID" type="menu">
-                <Label>Select Broker:</Label>
-                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
-            </Field>            
-            <Field id="stringPattern" type="textfield">
-                <Label>String to match:</Label>
-            </Field>
-            <Field id="stringNote" type="label" fontSize="small" fontColor="darkgray">
-                <Label>String Match is an exact match to the message field.  For substring matches, use the RegEx Pattern Match Event.</Label>
             </Field>
         </ConfigUI>
     </Event>

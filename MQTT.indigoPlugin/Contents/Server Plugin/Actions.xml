@@ -29,7 +29,82 @@
         	</Field>
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
-                <Label>Variable and Device State Substitution is enabled for all fields. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
+                <Label>Variable and Device State Substitution is enabled for topic and playload fields. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
+            </Field>
+        </ConfigUI>
+    </Action>
+
+    <Action id="publish_device" deviceFilter="self.mqttBroker">
+        <Name>Publish Indigo Device Data</Name>
+        <CallbackMethod>publishDeviceAction</CallbackMethod>
+        <ConfigUI>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+            <Field id="deviceProtocol" type="menu" defaultValue="Insteon">
+                <Label>Select Plugin:</Label>
+                <List method="getProtocolList" dynamicReload="true" class="self" filter="" />
+                <CallbackMethod>menuChanged</CallbackMethod>
+            </Field>
+			<Field id="baseDevice" type="menu">
+				<Label>Device to Publish:</Label>
+				<List method="getProtocolDevices" dynamicReload="true" class="self" filter="" />
+                <CallbackMethod>menuChanged</CallbackMethod>
+			</Field>
+        	<Field id="qos" type="menu" defaultValue="0">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+        	<Field id="retain" type="menu" defaultValue="0">
+        		<Label>Retain:</Label>
+        		<List>
+        			<Option value="0">False</Option>
+        			<Option value="1">True</Option>
+        		</List>
+        	</Field>
+            <Field id="simpleSeparator2" type="separator"/>
+            <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Variable and Device State Substitution is enabled for topic field. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
+            </Field>
+        </ConfigUI>
+    </Action>
+
+    <Action id="add_subscription" deviceFilter="self.mqttBroker">
+        <Name>Add Topic Subscription</Name>
+        <CallbackMethod>addSubscriptionAction</CallbackMethod>
+        <ConfigUI>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+        	<Field id="qos" type="menu" defaultValue="0">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+            <Field id="simpleSeparator2" type="separator"/>
+            <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Variable and Device State Substitution is enabled for the topic. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
+            </Field>
+        </ConfigUI>
+    </Action>
+    
+    <Action id="del_subscription" deviceFilter="self.mqttBroker">
+        <Name>Remove Topic Subscription</Name>
+        <CallbackMethod>delSubscriptionAction</CallbackMethod>
+        <ConfigUI>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+            <Field id="simpleSeparator2" type="separator"/>
+            <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Variable and Device State Substitution is enabled for the topic. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
             </Field>
         </ConfigUI>
     </Action>

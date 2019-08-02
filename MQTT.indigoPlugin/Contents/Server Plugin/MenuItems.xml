@@ -6,4 +6,62 @@
 	 back to the user you can post information into the Event Log.
 -->
 <MenuItems>
+    <MenuItem id="add_subscription">
+        <Name>Add Topic Subscription</Name>
+        <CallbackMethod>addSubscriptionMenu</CallbackMethod>
+        <ConfigUI>
+            <Field id="brokerID" type="menu">
+                <Label>Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+        	<Field id="qos" type="menu" defaultValue="0">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+        </ConfigUI>
+    </MenuItem>
+    
+    <MenuItem id="del_subscription">
+        <Name>Remove Topic Subscription</Name>
+        <CallbackMethod>delSubscriptionMenu</CallbackMethod>
+        <ConfigUI>
+           <Field id="brokerID" type="menu">
+                <Label>Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>
+            <Field id="topic" type="textfield">
+                <Label>Topic:</Label>
+            </Field>
+        </ConfigUI>
+    </MenuItem>
+
+    <MenuItem id="clear_subscriptions">
+        <Name>Clear all Topic Subscriptions</Name>
+        <CallbackMethod>clearAllSubscriptionsMenu</CallbackMethod>
+        <ConfigUI>
+           <Field id="brokerID" type="menu">
+                <Label>Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>
+        </ConfigUI>
+    </MenuItem>
+
+    <MenuItem id="dump_subscriptions">
+        <Name>Print Topic Subscriptions to Log</Name>
+        <CallbackMethod>printSubscriptionsMenu</CallbackMethod>
+        <ConfigUI>
+           <Field id="brokerID" type="menu">
+                <Label>Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>
+        </ConfigUI>
+    </MenuItem>
+
 </MenuItems>

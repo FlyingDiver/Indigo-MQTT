@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 ####################
 
+import os
+import plistlib
+import json
 import logging
 from mqtt_broker import Broker
 
@@ -42,7 +45,7 @@ class Plugin(indigo.PluginBase):
                 for broker in self.brokers.values():
                     broker.loop()
 
-                self.sleep(1.0)
+                self.sleep(0.1)
 
         except self.stopThread:
             pass        
@@ -100,6 +103,7 @@ class Plugin(indigo.PluginBase):
  
             self.brokers[device.id] = Broker(device)
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
+            self.logger.debug(u"{}: subscriptions:\n{}".format(device.name, device.pluginProps[u'subscriptions']))
 
         else:
             self.logger.warning(u"{}: Invalid device type: {}".format(device.name, device.deviceTypeId))
@@ -177,20 +181,152 @@ class Plugin(indigo.PluginBase):
 
     def publishMessageAction(self, pluginAction, brokerDevice, callerWaitingForResult):
         broker = self.brokers[brokerDevice.id]
-
-        self.logger.debug(u"publishMessageAction queueing message {} to {}".format(pluginAction, broker.device.name))
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
         retain = bool(pluginAction.props["retain"])
-
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+        self.logger.debug(u"{}: publishMessageAction {}: {}".format(broker.device.name, topic, payload))
+
+    def publishDeviceAction(self, pluginAction, brokerDevice, callerWaitingForResult):
+        broker = self.brokers[brokerDevice.id]
+        topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
+        qos = int(pluginAction.props["qos"])
+        retain = bool(pluginAction.props["retain"])
+        pubDevice = indigo.devices[int(pluginAction.props["baseDevice"])]
+        payload = {}
+        payload['name'] = pubDevice.name
+        payload['id'] =   pubDevice.id
+        payload['states'] = {}
+        for key in pubDevice.states:
+            payload['states'] [key] = pubDevice.states[key]
+        self.logger.debug(u"{}: publishDeviceAction {}: {}".format(broker.device.name, topic, payload))
+        broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
+
+
+    def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
+        topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
+        qos = int(pluginAction.props["qos"])
+        self.addSubscription(brokerDevice.id, topic, qos)
+
+    def addSubscriptionMenu(self, valuesDict, typeId):
+        deviceId = int(valuesDict["brokerID"])
+        topic = indigo.activePlugin.substitute(valuesDict["topic"])
+        qos = int(valuesDict["qos"])
+        self.addSubscription(deviceId, topic, qos)
+        return True
+
+    def addSubscription(self, brokerID, topic, qos):
+        broker = self.brokers[brokerID]
+        broker.subscribe(topic=topic, qos=qos)
+        self.logger.debug(u"{}: addSubscription {} ({})".format(broker.device.name, topic, qos))
         
+        updatedPluginProps = broker.device.pluginProps
+        if not 'subscriptions' in updatedPluginProps:
+           subList = []
+        else:
+           subList = updatedPluginProps[u'subscriptions']
+        if not topic in subList:
+            subList.append(topic)
+        updatedPluginProps[u'subscriptions'] = subList
+        self.logger.debug(u"{}: subscriptions after update :\n{}".format(broker.device.name, updatedPluginProps[u'subscriptions']))
+        broker.device.replacePluginPropsOnServer(updatedPluginProps)
+
+    def delSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
+        topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
+        self.delSubscription(brokerDevice.id, topic)
+
+    def delSubscriptionMenu(self, valuesDict, typeId):
+        deviceId = int(valuesDict["brokerID"])
+        topic = indigo.activePlugin.substitute(valuesDict["topic"])
+        self.delSubscription(deviceId, topic)
+        return True
+
+    def delSubscription(self, brokerID, topic):
+        broker = self.brokers[brokerID]
+        broker.unsubscribe(topic=topic)
+        self.logger.debug(u"{}: delSubscriptionAction {}".format(broker.device.name, topic))
+        
+        updatedPluginProps = broker.device.pluginProps
+        if not 'subscriptions' in updatedPluginProps:
+            self.logger.error(u"{}: delSubscription error, subList is empty".format(broker.device.name))
+            return
+        subList = updatedPluginProps[u'subscriptions']
+        if not topic in subList:
+            self.logger.debug(u"{}: Topic {} not in subList.".format(broker.device.name, topics))
+            return
+        subList.remove(topic)
+        updatedPluginProps[u'subscriptions'] = subList
+        self.logger.debug(u"{}: subscriptions after update :\n{}".format(broker.device.name, updatedPluginProps[u'subscriptions']))
+        broker.device.replacePluginPropsOnServer(updatedPluginProps)
+
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
         retList = []
         for broker in self.brokers.values():
             retList.append((broker.device.id, broker.device.name))
+        retList.sort(key=lambda tup: tup[1])
+        return retList
+
+    ########################################################################
+    # This method is called to generate a list of plugin identifiers / names
+    ########################################################################
+
+    def getProtocolList(self, filter="", valuesDict=None, typeId="", targetId=0):
+
+        retList = []
+        indigoInstallPath = indigo.server.getInstallFolderPath()
+        pluginFolders =['Plugins', 'Plugins (Disabled)']
+        for pluginFolder in pluginFolders:
+            tempList = []
+            pluginsList = os.listdir(indigoInstallPath + '/' + pluginFolder)
+            for plugin in pluginsList:
+                # Check for Indigo Plugins and exclude 'system' plugins
+                if (plugin.lower().endswith('.indigoplugin')) and (not plugin[0:1] == '.'):
+                    # retrieve plugin Info.plist file
+                    path = indigoInstallPath + "/" + pluginFolder + "/" + plugin + "/Contents/Info.plist"
+                    try:
+                        pl = plistlib.readPlist(path)
+                    except:
+                        self.logger.warning(u"getPluginList: Unable to parse plist, skipping: %s" % (path))
+                    else:
+                        bundleId = pl["CFBundleIdentifier"]
+                        if self.pluginId != bundleId:
+                            # Don't include self (i.e. this plugin) in the plugin list
+                            displayName = pl["CFBundleDisplayName"]
+                            # if disabled plugins folder, append 'Disabled' to name
+                            if pluginFolder == 'Plugins (Disabled)':
+                                displayName += ' [Disabled]'
+                            tempList.append((bundleId, displayName))
+            tempList.sort(key=lambda tup: tup[1])
+            retList = retList + tempList
+
+        retList.insert(0, ("X-10", "X-10"))
+        retList.insert(0, ("Z-Wave", "Z-Wave"))
+        retList.insert(0, ("Insteon", "Insteon"))
+        return retList
+
+    def getProtocolDevices(self, filter="", valuesDict=None, typeId="", targetId=0):
+
+        retList = []
+        deviceProtocol = valuesDict.get("deviceProtocol", None)
+        if deviceProtocol == "Insteon":
+            for dev in indigo.devices.iter("indigo.insteon"):
+                retList.append((dev.id, dev.name))
+        
+        elif deviceProtocol == "X-10":
+            for dev in indigo.devices.iter("indigo.x10"):
+                retList.append((dev.id, dev.name))
+
+        elif deviceProtocol == "Z-Wave":
+            for dev in indigo.devices.iter("indigo.zwave"):
+                retList.append((dev.id, dev.name))
+
+        else:
+            for dev in indigo.devices.iter():
+                if dev.protocol == indigo.kProtocol.Plugin and dev.pluginId == deviceProtocol:
+                    retList.append((dev.id, dev.name))
+
         retList.sort(key=lambda tup: tup[1])
         return retList
 
