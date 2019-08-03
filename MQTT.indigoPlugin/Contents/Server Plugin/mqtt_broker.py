@@ -67,11 +67,9 @@ class Broker(object):
         self.client.publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, qos=0):
-        self.logger.debug(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
         self.client.subscribe(topic, qos)
 
     def unsubscribe(self, topic):
-        self.logger.debug(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
         self.client.unsubscribe(topic)
 
 
@@ -81,6 +79,9 @@ class Broker(object):
 
     def on_connect(self, client, userdata, flags, rc):
         self.logger.debug(u"{}: Connected with result code {}".format(self.device.name, rc))
+
+        # make sure the local copy of the subscription list is up to date
+        self.device.refreshFromServer()
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
         topics = self.device.pluginProps.get(u'subscriptions', None)

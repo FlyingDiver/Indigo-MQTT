@@ -30,7 +30,7 @@
             <Field id="password" type="textfield" secure="true">
                 <Label>Password:</Label>
             </Field>
-            <Field type="checkbox" id="useTLS">
+            <Field id="useTLS" type="checkbox">
                 <Label>Use SSL/TLS:</Label>
             </Field>
 
