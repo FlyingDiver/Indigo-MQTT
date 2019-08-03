@@ -40,20 +40,16 @@ class Plugin(indigo.PluginBase):
                     
     def shutdown(self):
         self.logger.info(u"Shutting down MQTT")
-
         if self.server:
             self.server.kill()
 
-    def runConcurrentThread(self):
 
+    def runConcurrentThread(self):
         try:
             while True:
-            
                 for broker in self.brokers.values():
                     broker.loop()
-
                 self.sleep(0.1)
-
         except self.stopThread:
             pass        
 
@@ -135,6 +131,9 @@ class Plugin(indigo.PluginBase):
                 return True           
             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
                 return True           
+
+            # a bit of a hack to make sure name changes get pushed down immediately                
+            self.brokers[newDev.id].refreshFromServer()
                 
         return False
     
@@ -210,10 +209,10 @@ class Plugin(indigo.PluginBase):
         return True
     
     def printSubscriptionsMenu(self, valuesDict, typeId):
-        broker = self.brokers[int(valuesDict["brokerID"])]
-        self.logger.info(u"{}: Current topic subscriptions:".format(broker.device.name))
-        for topic in broker.device.pluginProps[u'subscriptions']:
-            self.logger.info(u"{}:\t\t{}".format(broker.device.name, topic))
+        device = indigo.devices[int(valuesDict["brokerID"])]
+        self.logger.info(u"{}: Current topic subscriptions:".format(device.name))
+        for topic in device.pluginProps[u'subscriptions']:
+            self.logger.info(u"{}:\t\t{}".format(device.name, topic))
         return True
     
     # doesn't do anything, just needed to force other menus to dynamically refresh
@@ -231,8 +230,8 @@ class Plugin(indigo.PluginBase):
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
         retain = bool(pluginAction.props["retain"])
+        self.logger.debug(u"{}: publishMessageAction {}: {}".format(brokerDevice.name, topic, payload))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
-        self.logger.debug(u"{}: publishMessageAction {}: {}".format(broker.device.name, topic, payload))
 
     def publishDeviceAction(self, pluginAction, brokerDevice, callerWaitingForResult):
         broker = self.brokers[brokerDevice.id]
@@ -251,7 +250,7 @@ class Plugin(indigo.PluginBase):
         payload['pluginProps'] = {}
         for key in pubDevice.pluginProps:
             payload['states'] [key] = pubDevice.pluginProps[key]
-        self.logger.debug(u"{}: publishDeviceAction {}: {}".format(broker.device.name, topic, payload))
+        self.logger.debug(u"{}: publishDeviceAction {}: {}".format(brokerDevice.name, topic, payload))
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
     def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -269,8 +268,9 @@ class Plugin(indigo.PluginBase):
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
         retList = []
-        for broker in self.brokers.values():
-            retList.append((broker.device.id, broker.device.name))
+        for brokerID in self.brokers:
+            device = indigo.devices[int(brokerID)]
+            retList.append((device.id, device.name))
         retList.sort(key=lambda tup: tup[1])
         return retList
 
@@ -280,10 +280,11 @@ class Plugin(indigo.PluginBase):
 
     def addSubscription(self, brokerID, topic, qos):
         broker = self.brokers[brokerID]
+        device = indigo.devices[int(brokerID)]
         broker.subscribe(topic=topic, qos=qos)
-        self.logger.debug(u"{}: addSubscription {} ({})".format(broker.device.name, topic, qos))
+        self.logger.debug(u"{}: addSubscription {} ({})".format(device.name, topic, qos))
         
-        updatedPluginProps = broker.device.pluginProps
+        updatedPluginProps = device.pluginProps
         if not 'subscriptions' in updatedPluginProps:
            subList = []
         else:
@@ -291,30 +292,32 @@ class Plugin(indigo.PluginBase):
         if not topic in subList:
             subList.append(topic)
         updatedPluginProps[u'subscriptions'] = subList
-        self.logger.debug(u"{}: subscriptions after update :\n{}".format(broker.device.name, updatedPluginProps[u'subscriptions']))
-        broker.device.replacePluginPropsOnServer(updatedPluginProps)
+        self.logger.debug(u"{}: subscriptions after update :\n{}".format(device.name, updatedPluginProps[u'subscriptions']))
+        device.replacePluginPropsOnServer(updatedPluginProps)
 
     def delSubscription(self, brokerID, topic):
         broker = self.brokers[brokerID]
+        device = indigo.devices[int(brokerID)]
         broker.unsubscribe(topic=topic)
-        self.logger.debug(u"{}: delSubscription {}".format(broker.device.name, topic))
+        self.logger.debug(u"{}: delSubscription {}".format(device.name, topic))
         
-        updatedPluginProps = broker.device.pluginProps
+        updatedPluginProps = device.pluginProps
         if not 'subscriptions' in updatedPluginProps:
-            self.logger.error(u"{}: delSubscription error, subList is empty".format(broker.device.name))
+            self.logger.error(u"{}: delSubscription error, subList is empty".format(device.name))
             return
         subList = updatedPluginProps[u'subscriptions']
         if not topic in subList:
-            self.logger.debug(u"{}: Topic {} not in subList.".format(broker.device.name, topics))
+            self.logger.debug(u"{}: Topic {} not in subList.".format(device.name, topics))
             return
         subList.remove(topic)
         updatedPluginProps[u'subscriptions'] = subList
-        self.logger.debug(u"{}: subscriptions after update :\n{}".format(broker.device.name, updatedPluginProps[u'subscriptions']))
-        broker.device.replacePluginPropsOnServer(updatedPluginProps)
+        self.logger.debug(u"{}: subscriptions after update :\n{}".format(device.name, updatedPluginProps[u'subscriptions']))
+        device.replacePluginPropsOnServer(updatedPluginProps)
 
     def clearAllSubscriptions(self, brokerID):
         broker = self.brokers[brokerID]
-        for topic in broker.device.pluginProps[u'subscriptions']:
+        device = indigo.devices[int(brokerID)]
+        for topic in device.pluginProps[u'subscriptions']:
             self.delSubscription(brokerID, topic)
     
 

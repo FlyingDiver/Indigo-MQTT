@@ -24,7 +24,7 @@ class Broker(object):
 
         self.useTLS = device.pluginProps.get(u'useTLS', False)
 
-        self.logger.debug(u"Broker __init__ address = {}, port = {}, protocol = {}, transport = {}".format(self.address, self.port, self.protocol, self.transport))
+        self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}".format(device.name, self.address, self.port, self.protocol, self.transport))
         
         self.device.updateStateOnServer(key="status", value="Not Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
@@ -55,7 +55,6 @@ class Broker(object):
             self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def __del__(self):
-    
         self.client.disconnect()
         self.device.updateStateOnServer(key="status", value="Not Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
@@ -72,6 +71,10 @@ class Broker(object):
     def unsubscribe(self, topic):
         self.client.unsubscribe(topic)
 
+    def refreshFromServer(self):
+        self.device.refreshFromServer()
+        self.logger.debug(u"{}: refreshFromServer complete".format(self.device.name))
+        
 
     ################################################################################
     # Callbacks
@@ -79,8 +82,6 @@ class Broker(object):
 
     def on_connect(self, client, userdata, flags, rc):
         self.logger.debug(u"{}: Connected with result code {}".format(self.device.name, rc))
-
-        # make sure the local copy of the subscription list is up to date
         self.device.refreshFromServer()
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
