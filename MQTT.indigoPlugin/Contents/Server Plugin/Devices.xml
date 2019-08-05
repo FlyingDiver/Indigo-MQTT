@@ -4,17 +4,23 @@
     <Device type="custom" id="mqttBroker">
         <Name>MQTT Broker</Name>
         <ConfigUI>  
-           <Field id="subscriptions" type="list" hidden="true"><List class="self" method="subscribedList"/></Field>
-           <Field id="broadcastDevs" type="list" hidden="true"><List class="self" method="broadcastList"/></Field>
+            <Field id="subscriptions" type="list" hidden="true"><List class="self" method="subscribedList"/></Field>
+            <Field id="old_subscriptions" type="list" hidden="true"><List class="self" method="subscribedList"/></Field>
+            <Field id="published_devices" type="list" hidden="true"><List class="self" method="publishedDeviceList"/></Field>
+            <Field id="published_variables" type="list" hidden="true"><List class="self" method="publishedVariableList"/></Field>
+           
             <Field id="section" type="menu" defaultValue="connect">
                 <Label>Section:</Label>
         		<List>
         			<Option value="connect">Connection Info</Option>
         			<Option value="subscriptions">Topic Subscriptions</Option>
-        			<Option value="broadcasts">Device Broadcasts</Option>
+        			<Option value="devices">Published Devices</Option>
+        			<Option value="device_template">Device Publishing Template</Option>
+        			<Option value="variables">Published Variables</Option>
+        			<Option value="variable_template">Variable Publishing Template</Option>
         		</List>
         	</Field>
-            <Field id="simpleSeparator1" type="separator"/>
+            <Field id="section_separator1" type="separator"/>
 
             <!--  This section for connection and login information for the MQTT Broker/server  -->
 
@@ -50,10 +56,10 @@
 
             <!--  This section for managing topic subscriptions for this broker  -->
 
-            <Field id="newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
+            <Field id="subscriptions_newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
                 <Label>Topic to subscribe:</Label>
             </Field>
-        	<Field id="qos" type="menu" defaultValue="0" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+        	<Field id="subscriptions_qos" type="menu" defaultValue="0" visibleBindingId="section" visibleBindingValue="subscriptions">
         		<Label>QoS Level:</Label>
         		<List>
         			<Option value="0">0</Option>
@@ -61,61 +67,163 @@
         			<Option value="2">2</Option>
         		</List>
         	</Field>
-            <Field id="addTopic" type="button" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+            <Field id="subscriptions_addTopic" type="button" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label/>
                 <Title>Add Topic</Title>
                 <CallbackMethod>addTopic</CallbackMethod>
             </Field>
-            <Field id="simpleSeparator2" type="separator" visibleBindingId="section" visibleBindingValue="subscriptions"/>
-            <Field id="subscribedLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+            <Field id="subscriptions_separator1" type="separator" visibleBindingId="section" visibleBindingValue="subscriptions"/>
+            <Field id="subscriptions_subscribedLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label>This is the list of topics currently subscribed to for this broker.</Label>
             </Field>
-           <Field id="items" type="list" rows="10" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+           <Field id="subscriptions_items" type="list" rows="10" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label>Subscribed Topics:</Label>
                 <List class="self" method="subscribedList" dynamicReload="true"/>
             </Field>
-            <Field id="deleteSubscriptions" type="button" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+            <Field id="subscriptions_deleteSubscriptions" type="button" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label/>
                 <Title>Delete Subscriptions</Title>
                 <CallbackMethod>deleteSubscriptions</CallbackMethod>
             </Field>
 
-            <!--  This section for managing device broadcasts for this broker  -->
+            <!--  This section for managing device publishing to this broker  -->
 
-            <Field id="doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="broadcasts">
+            <Field id="devices_doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="devices">
                 <Label>Exclude Devices</Label>
             </Field>
-            <Field id="excludeLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="broadcasts">
-                <Label>If checked the list of devices below will be excluded from the broadcasts.  If not checked, ONLY the devices below will be broadcast. </Label>
+            <Field id="devices_excludeLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="devices">
+                <Label>If checked the list of devices below will be excluded from publishing.  If not checked, ONLY the devices below will be published. </Label>
             </Field>
-            <Field id="simpleSeparator3" type="separator" visibleBindingId="section" visibleBindingValue="broadcasts"/>
-            <Field id="deviceProtocol" type="menu" defaultValue="Insteon" visibleBindingId="section" visibleBindingValue="broadcasts">
+            <Field id="devices_separator1" type="separator" visibleBindingId="section" visibleBindingValue="devices"/>
+            <Field id="deviceProtocol" type="menu" defaultValue="Insteon" visibleBindingId="section" visibleBindingValue="devices">
                 <Label>Select Plugin:</Label>
                 <List method="getProtocolList" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
             </Field>
-			<Field id="deviceSelected" type="menu" visibleBindingId="section" visibleBindingValue="broadcasts">
+			<Field id="devices_deviceSelected" type="menu" visibleBindingId="section" visibleBindingValue="devices">
 				<Label>Device to Publish:</Label>
 				<List method="getProtocolDevices" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
 			</Field>
-            <Field id="addDevice" type="button" visibleBindingId="section" visibleBindingValue="broadcasts">
+            <Field id="devices_addDevice" type="button" visibleBindingId="section" visibleBindingValue="devices">
                 <Label/>
                 <Title>Add Device</Title>
                 <CallbackMethod>addDevice</CallbackMethod>
             </Field>
-
-            <Field id="devList" type="list" rows="15" visibleBindingId="section" visibleBindingValue="broadcasts">
-                <Label>Broadcasts:</Label>
-                <List class="self" method="broadcastList" dynamicReload="true"/>
+            <Field id="devices_list" type="list" rows="15" visibleBindingId="section" visibleBindingValue="devices">
+                <Label>Published Devices:</Label>
+                <List class="self" method="publishedDeviceList" dynamicReload="true"/>
             </Field>
-            <Field id="deleteDevices" type="button" visibleBindingId="section" visibleBindingValue="broadcasts">
+            <Field id="devices_deleteDevices" type="button" visibleBindingId="section" visibleBindingValue="devices">
                 <Label/>
                 <Title>Delete Devices</Title>
                 <CallbackMethod>deleteDevices</CallbackMethod>
             </Field>
 
+            <!--  This section for managing variable broadcasts to this broker  -->
+
+			<Field id="variables_variableSelected" type="menu" visibleBindingId="section" visibleBindingValue="variables">
+				<Label>Variable to Publish:</Label>
+				<List method="getVariables" dynamicReload="true" class="self" filter="" />
+                <CallbackMethod>menuChanged</CallbackMethod>
+			</Field>
+            <Field id="variables_addVariable" type="button" visibleBindingId="section" visibleBindingValue="variables">
+                <Label/>
+                <Title>Add Variable</Title>
+                <CallbackMethod>addVariable</CallbackMethod>
+            </Field>
+            <Field id="variables_list" type="list" rows="15" visibleBindingId="section" visibleBindingValue="variables">
+                <Label>Published Variables:</Label>
+                <List class="self" method="publishedVariableList" dynamicReload="true"/>
+            </Field>
+            <Field id="variables_deleteVariable" type="button" visibleBindingId="section" visibleBindingValue="variables">
+                <Label/>
+                <Title>Delete Variables</Title>
+                <CallbackMethod>deleteVariables</CallbackMethod>
+            </Field>
+
+            <!--  This section for defining the format for device broadcasts to this broker  -->
+
+            <Field id="device_template_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="device_template">
+                <Label>See the Wiki for how to use this section. </Label>
+            </Field>
+            <Field id="device_template_separator1" type="separator" visibleBindingId="section" visibleBindingValue="device_template"/>
+            <Field id="device_template_topic" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template">
+                <Label>Topic:
+                </Label>
+            </Field>
+            <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template">
+                <Label>Payload:
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </Label>
+            </Field>
+        	<Field id="device_template_qos" type="menu" defaultValue="0"  visibleBindingId="section" visibleBindingValue="device_template">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+        	<Field id="device_template_retain" type="menu" defaultValue="0"  visibleBindingId="section" visibleBindingValue="device_template">
+        		<Label>Retain:</Label>
+        		<List>
+        			<Option value="0">False</Option>
+        			<Option value="1">True</Option>
+        		</List>
+        	</Field>
+
+            <!--  This section for defining the format for variable broadcasts to this broker  -->
+
+            <Field id="variable_template_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="variable_template">
+                <Label>See the Wiki for how to use this section. </Label>
+            </Field>
+            <Field id="variable_template_separator1" type="separator" visibleBindingId="section" visibleBindingValue="variable_template"/>
+            <Field id="variable_template_topic" type="textfield"  visibleBindingId="section" visibleBindingValue="variable_template">
+                <Label>Topic:
+                </Label>
+            </Field>
+            <Field id="variable_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="variable_template">
+                <Label>Payload:
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </Label>
+            </Field>
+        	<Field id="variable_template_qos" type="menu" defaultValue="0"  visibleBindingId="section" visibleBindingValue="variable_template">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+        	<Field id="variable_template_retain" type="menu" defaultValue="0"  visibleBindingId="section" visibleBindingValue="variable_template">
+        		<Label>Retain:</Label>
+        		<List>
+        			<Option value="0">False</Option>
+        			<Option value="1">True</Option>
+        		</List>
+        	</Field>
+
         </ConfigUI> 
+        
         <States>
             <State id="status">
                 <ValueType>String</ValueType>
