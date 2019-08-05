@@ -21,10 +21,7 @@ class Plugin(indigo.PluginBase):
         pfmt = logging.Formatter('%(asctime)s.%(msecs)03d\t[%(levelname)8s] %(name)20s.%(funcName)-25s%(msg)s', datefmt='%Y-%m-%d %H:%M:%S')
         self.plugin_file_handler.setFormatter(pfmt)
 
-        try:
-            self.logLevel = int(self.pluginPrefs[u"logLevel"])
-        except:
-            self.logLevel = logging.INFO
+        self.logLevel = int(self.pluginPrefs.get(u"logLevel", logging.INFO))
         self.indigo_log_handler.setLevel(self.logLevel)
 
     def startup(self):
@@ -35,7 +32,9 @@ class Plugin(indigo.PluginBase):
         self.server = None
         
         if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
-            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '-p', '1883'])        
+            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '-p', '1883'])
+            self.sleep(3.0)
+
      
                     
     def shutdown(self):
@@ -185,34 +184,121 @@ class Plugin(indigo.PluginBase):
             else:
                 self.logger.debug("\t\tSkipping Trigger %s (%s), wrong device: %s" % (trigger.name, trigger.id, device.id))
 
+    ########################################
+    # This is the method that's called by the Add Topic button in the device in the Broker device config UI.
+    ########################################
+    
+    def addTopic(self, valuesDict, typeId, deviceId):
+
+        topic = valuesDict["newTopic"]
+        qos = valuesDict["qos"]
+        s = "{}:{}".format(qos, topic)
+        
+        topicList = list()
+        if 'subscriptions' in valuesDict:
+            for t in valuesDict['subscriptions']:
+                topicList.append(t) 
+        if s not in topicList:
+            topicList.append(s)
+            valuesDict['updateSubscriptions'] = True
+        valuesDict['subscriptions'] = topicList
+        
+        return valuesDict
+
+    ########################################
+    # This is the method that's called by the Delete Subscriptions button in the Broker device config UI.
+    ########################################
+    
+    def deleteSubscriptions(self, valuesDict, typeId, deviceId):
+        topicList = list()
+        if 'subscriptions' in valuesDict:
+            for t in valuesDict['subscriptions']:
+                topicList.append(t) 
+        for t in valuesDict['items']:
+            if t in topicList:
+                topicList.remove(t)
+                valuesDict['updateSubscriptions'] = True
+        valuesDict['subscriptions'] = topicList
+        return valuesDict
+
+    ########################################
+    # This is the method that's called to build the topic subscription list in the Broker device config UI.
+    ########################################
+    
+    def subscribedList(self, filter, valuesDict, typeId, deviceId):
+        returnList = list()
+        if 'subscriptions' in valuesDict:
+            for topic in valuesDict['subscriptions']:
+                returnList.append(topic)
+        return returnList
+        
+
+    ########################################
+    # This is the method that's called by the Add Device button in the Broker device config UI.
+    ########################################
+    
+    def addDevice(self, valuesDict, typeId, deviceId):
+        d = valuesDict["deviceSelected"]
+        deviceList = list()
+        if 'broadcastDevs' in valuesDict:
+            for t in valuesDict['broadcastDevs']:
+                deviceList.append(t) 
+        if d not in deviceList:
+            deviceList.append(d)
+        valuesDict['broadcastDevs'] = deviceList
+        return valuesDict
+
+    ########################################
+    # This is the method that's called by the Delete Devices button in the Broker device config UI.
+    ########################################
+    
+    def deleteDevices(self, valuesDict, typeId, deviceId):
+        deviceList = list()
+        if 'broadcastDevs' in valuesDict:
+            for t in valuesDict['broadcastDevs']:
+                deviceList.append(t) 
+        for t in valuesDict['devList']:
+            if t in deviceList:
+                deviceList.remove(t)
+        valuesDict['broadcastDevs'] = deviceList
+        return valuesDict
+
+    ########################################
+    # This is the method that's called to build the broadcast device list in the Broker device config UI.
+    ########################################
+    
+    def broadcastList(self, filter, valuesDict, typeId, deviceId):
+        returnList = list()
+        if 'broadcastDevs' in valuesDict:
+            for d in valuesDict['broadcastDevs']:
+                returnList.append((d, indigo.devices[int(d)].name))
+        return returnList
+        
+    ########################################
+
+    def validateDeviceConfigUi(self, valuesDict, typeId, deviceId):
+        if valuesDict.get('updateSubscriptions', False):
+            # sync subscriptions to Broker
+            if 'subscriptions' in valuesDict:
+                broker = self.brokers[deviceId]
+                for s in valuesDict['subscriptions']:
+                    qos = int(s[0:1])
+                    topic = s[2:]
+                    broker.subscribe(topic=topic, qos=qos)
+        return (True, valuesDict)
+
 
     ########################################
     # Menu Methods
     ########################################
-        
-    def addSubscriptionMenu(self, valuesDict, typeId):
-        deviceId = int(valuesDict["brokerID"])
-        topic = indigo.activePlugin.substitute(valuesDict["topic"])
-        qos = int(valuesDict["qos"])
-        self.addSubscription(deviceId, topic, qos)
-        return True
-
-    def delSubscriptionMenu(self, valuesDict, typeId):
-        deviceId = int(valuesDict["brokerID"])
-        topic = indigo.activePlugin.substitute(valuesDict["topic"])
-        self.delSubscription(deviceId, topic)
-        return True
-
-    def clearAllSubscriptionsMenu(self, valuesDict, typeId):
-        deviceId = int(valuesDict["brokerID"])
-        self.clearAllSubscriptions(deviceId)
-        return True
-    
+            
     def printSubscriptionsMenu(self, valuesDict, typeId):
         device = indigo.devices[int(valuesDict["brokerID"])]
         self.logger.info(u"{}: Current topic subscriptions:".format(device.name))
-        for topic in device.pluginProps[u'subscriptions']:
-            self.logger.info(u"{}:\t\t{}".format(device.name, topic))
+        for s in device.pluginProps[u'subscriptions']:
+            qos = int(s[0:1])
+            topic = s[2:]
+            self.logger.info(u"{}: {} ({})".format(device.name, topic, qos))
         return True
     
     # doesn't do anything, just needed to force other menus to dynamically refresh
@@ -230,7 +316,7 @@ class Plugin(indigo.PluginBase):
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
         retain = bool(pluginAction.props["retain"])
-        self.logger.debug(u"{}: publishMessageAction {}: {}".format(brokerDevice.name, topic, payload))
+        self.logger.debug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def publishDeviceAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -250,7 +336,7 @@ class Plugin(indigo.PluginBase):
         payload['pluginProps'] = {}
         for key in pubDevice.pluginProps:
             payload['states'] [key] = pubDevice.pluginProps[key]
-        self.logger.debug(u"{}: publishDeviceAction {}: {}".format(brokerDevice.name, topic, payload))
+        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
     def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -329,7 +415,8 @@ class Plugin(indigo.PluginBase):
 
         retList = []
         indigoInstallPath = indigo.server.getInstallFolderPath()
-        pluginFolders =['Plugins', 'Plugins (Disabled)']
+#        pluginFolders =['Plugins', 'Plugins (Disabled)']
+        pluginFolders =['Plugins']
         for pluginFolder in pluginFolders:
             tempList = []
             pluginsList = os.listdir(indigoInstallPath + '/' + pluginFolder)

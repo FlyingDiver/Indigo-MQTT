@@ -4,34 +4,115 @@
     <Device type="custom" id="mqttBroker">
         <Name>MQTT Broker</Name>
         <ConfigUI>  
-            <Field id="address" type="textfield"  defaultValue="localhost" tooltip="Enter IP address or Hostname of MQTT Broker.">
+           <Field id="subscriptions" type="list" hidden="true"><List class="self" method="subscribedList"/></Field>
+           <Field id="broadcastDevs" type="list" hidden="true"><List class="self" method="broadcastList"/></Field>
+            <Field id="section" type="menu" defaultValue="connect">
+                <Label>Section:</Label>
+        		<List>
+        			<Option value="connect">Connection Info</Option>
+        			<Option value="subscriptions">Topic Subscriptions</Option>
+        			<Option value="broadcasts">Device Broadcasts</Option>
+        		</List>
+        	</Field>
+            <Field id="simpleSeparator1" type="separator"/>
+
+            <!--  This section for connection and login information for the MQTT Broker/server  -->
+
+            <Field id="address" type="textfield"  defaultValue="localhost" visibleBindingId="section" visibleBindingValue="connect">
                 <Label>IP Address or Hostname:</Label>
             </Field>
-            <Field id="port" type="textfield" defaultValue="1883" tooltip="Port number for MQTT Broker.">
+            <Field id="port" type="textfield" defaultValue="1883" visibleBindingId="section" visibleBindingValue="connect">
                 <Label>Port:</Label>
             </Field>
-            <Field id="protocol" type="menu" defaultValue="4">
+            <Field id="protocol" type="menu" defaultValue="4"  visibleBindingId="section" visibleBindingValue="connect">
         		<Label>MQTT Protocol:</Label>
         		<List>
         			<Option value="4">MQTTv311</Option>
         			<Option value="3">MQTTv31</Option>
         		</List>
         	</Field>
-            <Field id="transport" type="menu" defaultValue="tcp">
+            <Field id="transport" type="menu" defaultValue="tcp"  visibleBindingId="section" visibleBindingValue="connect">
         		<Label>Transport Protocol:</Label>
         		<List>
         			<Option value="tcp">TCP</Option>
         			<Option value="websockets">WebSockets</Option>
         		</List>
         	</Field>
-            <Field id="username" type="textfield">
+            <Field id="username" type="textfield"  visibleBindingId="section" visibleBindingValue="connect">
                 <Label>Username:</Label>
             </Field>
-            <Field id="password" type="textfield" secure="true">
+            <Field id="password" type="textfield" secure="true" visibleBindingId="section" visibleBindingValue="connect">
                 <Label>Password:</Label>
             </Field>
-            <Field id="useTLS" type="checkbox">
+            <Field id="useTLS" type="checkbox" visibleBindingId="section" visibleBindingValue="connect">
                 <Label>Use SSL/TLS:</Label>
+            </Field>
+
+            <!--  This section for managing topic subscriptions for this broker  -->
+
+            <Field id="newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
+                <Label>Topic to subscribe:</Label>
+            </Field>
+        	<Field id="qos" type="menu" defaultValue="0" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+        		<Label>QoS Level:</Label>
+        		<List>
+        			<Option value="0">0</Option>
+        			<Option value="1">1</Option>
+        			<Option value="2">2</Option>
+        		</List>
+        	</Field>
+            <Field id="addTopic" type="button" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+                <Label/>
+                <Title>Add Topic</Title>
+                <CallbackMethod>addTopic</CallbackMethod>
+            </Field>
+            <Field id="simpleSeparator2" type="separator" visibleBindingId="section" visibleBindingValue="subscriptions"/>
+            <Field id="subscribedLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+                <Label>This is the list of topics currently subscribed to for this broker.</Label>
+            </Field>
+           <Field id="items" type="list" rows="10" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+                <Label>Subscribed Topics:</Label>
+                <List class="self" method="subscribedList" dynamicReload="true"/>
+            </Field>
+            <Field id="deleteSubscriptions" type="button" visibleBindingId="section" visibleBindingValue="subscriptions" alwaysUseInDialogHeightCalc="true">
+                <Label/>
+                <Title>Delete Subscriptions</Title>
+                <CallbackMethod>deleteSubscriptions</CallbackMethod>
+            </Field>
+
+            <!--  This section for managing device broadcasts for this broker  -->
+
+            <Field id="doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label>Exclude Devices</Label>
+            </Field>
+            <Field id="excludeLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label>If checked the list of devices below will be excluded from the broadcasts.  If not checked, ONLY the devices below will be broadcast. </Label>
+            </Field>
+            <Field id="simpleSeparator3" type="separator" visibleBindingId="section" visibleBindingValue="broadcasts"/>
+            <Field id="deviceProtocol" type="menu" defaultValue="Insteon" visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label>Select Plugin:</Label>
+                <List method="getProtocolList" dynamicReload="true" class="self" filter="" />
+                <CallbackMethod>menuChanged</CallbackMethod>
+            </Field>
+			<Field id="deviceSelected" type="menu" visibleBindingId="section" visibleBindingValue="broadcasts">
+				<Label>Device to Publish:</Label>
+				<List method="getProtocolDevices" dynamicReload="true" class="self" filter="" />
+                <CallbackMethod>menuChanged</CallbackMethod>
+			</Field>
+            <Field id="addDevice" type="button" visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label/>
+                <Title>Add Device</Title>
+                <CallbackMethod>addDevice</CallbackMethod>
+            </Field>
+
+            <Field id="devList" type="list" rows="15" visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label>Broadcasts:</Label>
+                <List class="self" method="broadcastList" dynamicReload="true"/>
+            </Field>
+            <Field id="deleteDevices" type="button" visibleBindingId="section" visibleBindingValue="broadcasts">
+                <Label/>
+                <Title>Delete Devices</Title>
+                <CallbackMethod>deleteDevices</CallbackMethod>
             </Field>
 
         </ConfigUI> 

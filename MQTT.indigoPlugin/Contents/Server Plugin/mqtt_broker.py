@@ -85,11 +85,13 @@ class Broker(object):
         self.device.refreshFromServer()
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        topics = self.device.pluginProps.get(u'subscriptions', None)
-        if topics:
-            for topic in topics:
-                client.subscribe(topic)
-                self.logger.debug(u"{}: Subscribing to: {}".format(self.device.name, topic))
+        subs = self.device.pluginProps.get(u'subscriptions', None)
+        if subs:
+            for s in subs:
+                qos = int(s[0:1])
+                topic = s[2:]
+                client.subscribe(topic, qos)
+                self.logger.debug(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
             
         self.device.updateStateOnServer(key="status", value="Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
