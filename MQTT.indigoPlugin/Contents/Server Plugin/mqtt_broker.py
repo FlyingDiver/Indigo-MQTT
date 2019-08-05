@@ -73,7 +73,6 @@ class Broker(object):
 
     def refreshFromServer(self):
         self.device.refreshFromServer()
-        self.logger.debug(u"{}: refreshFromServer complete".format(self.device.name))
         
 
     ################################################################################
@@ -91,18 +90,18 @@ class Broker(object):
                 qos = int(s[0:1])
                 topic = s[2:]
                 client.subscribe(topic, qos)
-                self.logger.debug(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
+                self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
             
         self.device.updateStateOnServer(key="status", value="Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
     def on_disconnect(self, client, userdata, rc):
-        self.logger.debug(u"{}: Disconnected with result code {}".format(self.device.name, rc))
+        self.logger.error(u"{}: Disconnected with result code {}".format(self.device.name, rc))
         self.device.updateStateOnServer(key="status", value="Disconnected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def on_message(self, client, userdata, msg):
-        self.logger.debug(u"{}: Message received: {}, payload: {}".format(self.device.name, msg.topic, msg.payload))
+        self.logger.threaddebug(u"{}: Message received: {}, payload: {}".format(self.device.name, msg.topic, msg.payload))
 
         stateList = [
             { 'key':'last_topic',   'value': msg.topic   },
@@ -112,7 +111,7 @@ class Broker(object):
         indigo.activePlugin.triggerCheck(self.device)
 
     def on_publish(self, client, userdata, mid):
-        self.logger.debug(u"{}: Message published: {}".format(self.device.name, mid))
+        self.logger.threaddebug(u"{}: Message published: {}".format(self.device.name, mid))
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         self.logger.debug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, granted_qos))
