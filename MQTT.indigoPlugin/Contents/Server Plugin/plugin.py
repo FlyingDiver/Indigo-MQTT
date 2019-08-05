@@ -30,12 +30,14 @@ class Plugin(indigo.PluginBase):
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
         self.server = None
+
+        indigo.devices.subscribeToChanges()
         
         if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
+            self.logger.info(u"Starting mosquitto MQTT server")
             self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '-p', '1883'])
             self.sleep(3.0)
 
-     
                     
     def shutdown(self):
         self.logger.info(u"Shutting down MQTT")
@@ -51,7 +53,6 @@ class Plugin(indigo.PluginBase):
                 self.sleep(0.1)
         except self.stopThread:
             pass        
-
 
 
     ########################################
@@ -79,6 +80,24 @@ class Plugin(indigo.PluginBase):
                 self.logLevel = logging.INFO
             self.indigo_log_handler.setLevel(self.logLevel)
             self.logger.debug(u"MQTT logLevel = " + str(self.logLevel))
+
+
+    def deviceDeleted(self, dev):
+        self.logger.debug(u"{}: Device deleted".format(dev.name))
+        for brokerID in self.brokers:
+            brokerDev = indigo.devices[int(brokerID)]
+            devList = brokerDev.pluginProps.get(u'broadcastDevs', None)
+            if devList and unicode(dev.id) in devList:
+                self.logger.debug(u"{}: Device was in broadcast list of {}".format(dev.name, brokerDev.name))
+            
+
+    def deviceUpdated(self, origDev, newDev):
+        for brokerID in self.brokers:
+            brokerDev = indigo.devices[int(brokerID)]
+            devList = brokerDev.pluginProps.get(u'broadcastDevs', None)
+            if devList and unicode(origDev.id) in devList:
+                self.logger.debug(u"{}: Device is in broadcast list of {}".format(origDev.name, brokerDev.name))
+        
 
 
     ########################################
@@ -271,7 +290,10 @@ class Plugin(indigo.PluginBase):
         returnList = list()
         if 'broadcastDevs' in valuesDict:
             for d in valuesDict['broadcastDevs']:
-                returnList.append((d, indigo.devices[int(d)].name))
+                try:
+                    returnList.append((d, indigo.devices[int(d)].name))
+                except:
+                    pass
         return returnList
         
     ########################################
