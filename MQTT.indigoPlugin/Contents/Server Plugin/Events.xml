@@ -2,6 +2,16 @@
 <Events>
     <SupportURL>http://forums.indigodomo.com/viewtopic.php?f=316</SupportURL>
 
+    <Event id="messageReceived">
+        <Name>Any Message Received</Name>
+		<ConfigUI>
+            <Field id="brokerID" type="menu">
+                <Label>Select Broker:</Label>
+                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+            </Field>            
+		</ConfigUI>
+    </Event>
+
     <Event id="stringMatch">
         <Name>Topic String Match</Name>
         <ConfigUI>

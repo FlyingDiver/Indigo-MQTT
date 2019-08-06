@@ -211,7 +211,9 @@ class Plugin(indigo.PluginBase):
     def triggerCheck(self, device):
         for triggerId, trigger in sorted(self.triggers.iteritems()):
             if trigger.pluginProps["brokerID"] == str(device.id):
-                if trigger.pluginTypeId == "regexMatch":
+                if trigger.pluginTypeId == "messageReceived":
+                    indigo.trigger.execute(trigger)
+                elif trigger.pluginTypeId == "regexMatch":
                     pattern = trigger.pluginProps["regexPattern"]
                     cPattern = re.compile(pattern)
                     match = cPattern.search(device.states["last_topic"])
