@@ -29,7 +29,7 @@ class Broker(object):
         self.device.updateStateOnServer(key="status", value="Not Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        self.client = mqtt.Client(client_id="", clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
+        self.client = mqtt.Client(client_id="indigo-mqtt-{}".format(device.id), clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
 
         if bool(indigo.activePlugin.pluginPrefs[u"showDebugInfo"]):
             self.logger.debug(u"{}: Enabling library level debugging".format(self.device.name))    

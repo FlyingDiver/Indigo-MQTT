@@ -3,14 +3,15 @@
 ####################
 
 import os
-import subprocess
 import plistlib
 import json
 import logging
 import pystache
 import re
 
-from Queue import Queue
+from subprocess import PIPE, Popen
+from threading  import Thread
+from Queue import Queue, Empty
 
 from mqtt_broker import Broker
 
@@ -51,7 +52,11 @@ def makeVarForJSON(variable):
     var_data['value'] = variable.value
     return var_data
     
-    
+def enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+    out.close()
+ 
 ################################################################################
 class Plugin(indigo.PluginBase):
 
@@ -77,9 +82,16 @@ class Plugin(indigo.PluginBase):
         
         if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
             self.logger.info(u"Starting mosquitto MQTT server")
-            self.server = subprocess.Popen([os.getcwd()+'/mosquitto', '-p', '1883'])
-            self.sleep(3.0)
+            args = [os.getcwd()+'/mosquitto', '-p', '1883']
+            if bool(self.pluginPrefs.get(u"verboseMQTTServer", False)):
+                args.append('-v')
+            self.server = Popen(args, stderr=PIPE, bufsize=1)
+            self.q_stderr = Queue()
+            t = Thread(target=enqueue_output, args=(self.server.stderr, self.q_stderr))
+            t.daemon = True
+            t.start()
 
+            self.sleep(3.0)  
                     
     def shutdown(self):
         self.logger.info(u"Shutting down MQTT")
@@ -92,6 +104,14 @@ class Plugin(indigo.PluginBase):
             while True:
                 for broker in self.brokers.values():
                     broker.loop()
+                if self.server:
+                    try:  
+                        line = self.q_stderr.get_nowait()
+                    except Empty:
+                        pass
+                    else: 
+                        self.logger.debug(u"(mosquitto) {}".format(line.rstrip()))
+                
                 self.sleep(0.1)
         except self.stopThread:
             pass        
@@ -169,7 +189,6 @@ class Plugin(indigo.PluginBase):
             except:
                 self.logLevel = logging.INFO
             self.indigo_log_handler.setLevel(self.logLevel)
-            self.logger.debug(u"MQTT logLevel = " + str(self.logLevel))
 
 
     ########################################
