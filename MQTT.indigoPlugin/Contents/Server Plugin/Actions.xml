@@ -125,4 +125,9 @@
         <CallbackMethod>clearAllSubscriptionsAction</CallbackMethod>
     </Action>
     
+    <Action id="fetchQueuedMessage" hidden="true">
+        <CallbackMethod>fetchQueuedMessageAction</CallbackMethod>
+        <ConfigUI><Field id="fetch_messageType" type="textfield"/></ConfigUI>
+    </Action>
+    
 </Actions>

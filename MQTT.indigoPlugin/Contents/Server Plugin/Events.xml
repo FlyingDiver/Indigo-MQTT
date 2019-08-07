@@ -7,7 +7,7 @@
 		<ConfigUI>
             <Field id="brokerID" type="menu">
                 <Label>Select Broker:</Label>
-                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+                <List class="self" filter="Any" method="pickBroker" dynamicReload="true"/>
             </Field>            
 		</ConfigUI>
     </Event>
@@ -17,7 +17,7 @@
         <ConfigUI>
             <Field id="brokerID" type="menu">
                 <Label>Select Broker:</Label>
-                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+                <List class="self" filter="Any" method="pickBroker" dynamicReload="true"/>
             </Field>            
             <Field id="stringPattern" type="textfield">
                 <Label>String to match:</Label>
@@ -33,7 +33,7 @@
         <ConfigUI>
             <Field id="brokerID" type="menu">
                 <Label>Select Broker:</Label>
-                <List class="self" filter="" method="pickBroker" dynamicReload="true"/>
+                <List class="self" filter="Any" method="pickBroker" dynamicReload="true"/>
             </Field>            
              <Field id="regexPattern" type="textfield">
                 <Label>Regular Expression:</Label>
@@ -41,6 +41,45 @@
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="regexNote" type="label" fontSize="small" fontColor="darkgray">
                 <Label>For information on how to construct regular expressions, visit http://www.regular-expressions.info/tutorial.html</Label>
+            </Field>
+        </ConfigUI>
+    </Event>
+
+    <Event id="topicMatch">
+        <Name>Topic Component Match</Name>
+        <ConfigUI>
+            <Field id="match_list" type="list" hidden="true"><List class="self" method="matchList"/></Field>
+            <Field id="brokerID" type="menu">
+                <Label>Select Broker:</Label>
+                <List class="self" filter="Any" method="pickBroker" dynamicReload="true"/>
+            </Field> 
+        	<Field id="match_type" type="menu" defaultValue="Match">
+                <Label>Match Type:</Label>
+        		<List>
+        			<Option value="Match">Match</Option>
+        			<Option value="Skip">Skip</Option>
+        		</List>
+        	</Field>
+            <Field id="match_string" type="textfield" defaultValue="">
+                <Label>Match String:</Label>
+            </Field>
+            <Field id="add_match" type="button">
+                <Label/>
+                <Title>Add Match</Title>
+                <CallbackMethod>addMatch</CallbackMethod>
+            </Field>
+            <Field id="separator1" type="separator"/>
+            <Field id="match_label" type="label" fontColor="darkgray">
+                <Label>Topic strings for matching.</Label>
+            </Field>
+           <Field id="match_items" type="list" rows="5">
+                <Label/>
+                <List class="self" method="matchList" dynamicReload="true"/>
+            </Field>
+            <Field id="deleteTopics" type="button">
+                <Label/>
+                <Title>Delete Matches</Title>
+                <CallbackMethod>deleteMatches</CallbackMethod>
             </Field>
         </ConfigUI>
     </Event>

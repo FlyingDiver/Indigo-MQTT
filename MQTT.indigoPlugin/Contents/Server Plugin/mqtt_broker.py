@@ -66,9 +66,11 @@ class Broker(object):
         self.client.publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, qos=0):
+        self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
         self.client.subscribe(topic, qos)
 
     def unsubscribe(self, topic):
+        self.logger.info(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
         self.client.unsubscribe(topic)
 
     def refreshFromServer(self):
@@ -92,12 +94,12 @@ class Broker(object):
                 client.subscribe(topic, qos)
                 self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
             
-        self.device.updateStateOnServer(key="status", value="Connected")
+        self.device.updateStateOnServer(key="status", value="Connected {}".format(rc))
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
     def on_disconnect(self, client, userdata, rc):
         self.logger.error(u"{}: Disconnected with result code {}".format(self.device.name, rc))
-        self.device.updateStateOnServer(key="status", value="Disconnected")
+        self.device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def on_message(self, client, userdata, msg):

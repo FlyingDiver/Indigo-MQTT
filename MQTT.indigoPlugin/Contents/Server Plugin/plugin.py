@@ -8,11 +8,50 @@ import plistlib
 import json
 import logging
 import pystache
+import re
+
+from Queue import Queue
 
 from mqtt_broker import Broker
 
 kCurDevVersCount = 0        # current version of plugin devices
-        
+    
+# normally used for file system paths, but will work for slash separated topics
+
+def splitall(path):
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts 
+
+def makeDevForJSON(device):
+    dev_data = {}
+    dev_data['name'] = device.name
+    dev_data['deviceId'] = device.id
+    dev_data['model'] = device.model
+    dev_data['address'] = device.address
+    dev_data['states'] = []
+    for key, value in device.states.iteritems():
+        dev_data['states'].append({'name': key, 'value': value})
+    return dev_data
+
+def makeVarForJSON(variable):
+    var_data = {}
+    var_data['name'] = variable.name
+    var_data['variableId'] = variable.id
+    var_data['value'] = variable.value
+    return var_data
+    
+    
 ################################################################################
 class Plugin(indigo.PluginBase):
 
@@ -30,6 +69,7 @@ class Plugin(indigo.PluginBase):
 
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
+        self.queueDict = {}
         self.server = None
 
         indigo.devices.subscribeToChanges()
@@ -58,20 +98,14 @@ class Plugin(indigo.PluginBase):
             
 
     def deviceUpdated(self, origDevice, newDevice):
+        indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
             devList = brokerDevice.pluginProps.get(u'published_devices', None)
             if devList and unicode(newDevice.id) in devList:
-                dev_data = {}
-                dev_data['name'] = newDevice.name
-                dev_data['deviceId'] = newDevice.id
-                dev_data['model'] = newDevice.model
-                dev_data['address'] = newDevice.address
-                dev_data['states'] = []
-                for key, value in newDevice.states.iteritems():
-                    dev_data['states'].append({'name': key, 'value': value})
-
+                dev_data = makeDevForJSON(newDevice)
+#                self.logger.debug(u"deviceUpdated, dev_data = {}".format(dev_data))
                 topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
                 if not topic_template:
                     return
@@ -80,22 +114,22 @@ class Plugin(indigo.PluginBase):
                 if not payload_template:
                     return
                 payload = pystache.render(payload_template, dev_data)
+                payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
+
                 qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
 #                self.logger.debug(u"deviceUpdated, topic = {}, payload = {}".format(topic, payload))
                 broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def variableUpdated(self, origVariable, newVariable):
+        indigo.PluginBase.variableUpdated(self, origVariable, newVariable)
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
             varList = brokerDevice.pluginProps.get(u'published_variables', None)
             if varList and unicode(newVariable.id) in varList:
-                var_data = {}
-                var_data['name'] = newVariable.name
-                var_data['variableId'] = newVariable.id
-                var_data['value'] = newVariable.value
-
+                var_data = makeVarForJSON(newVariable)
+#                self.logger.debug(u"variableUpdated, var_data = {}".format(var_data))
                 topic_template =  brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
                     return
@@ -104,6 +138,7 @@ class Plugin(indigo.PluginBase):
                 if not payload_template:
                     return
                 payload = pystache.render(payload_template, var_data)
+                payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
                 qos = int(brokerDevice.pluginProps.get("variable_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("variable_template_retain", False))
 #                self.logger.debug(u"variableUpdated, topic = {}, payload = {}".format(topic, payload))
@@ -171,28 +206,28 @@ class Plugin(indigo.PluginBase):
         else:
             self.logger.warning(u"{}: deviceStopComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
         
-#     def didDeviceCommPropertyChange(self, origDev, newDev):
-#     
-#         if newDev.deviceTypeId == "mqttBroker":
-#             if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
-#                 return True           
-#             if origDev.pluginProps.get('port', None) != newDev.pluginProps.get('port', None):
-#                 return True           
-#             if origDev.pluginProps.get('protocol', None) != newDev.pluginProps.get('protocol', None):
-#                 return True           
-#             if origDev.pluginProps.get('transport', None) != newDev.pluginProps.get('transport', None):
-#                 return True           
-#             if origDev.pluginProps.get('username', None) != newDev.pluginProps.get('username', None):
-#                 return True           
-#             if origDev.pluginProps.get('password', None) != newDev.pluginProps.get('password', None):
-#                 return True           
-#             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
-#                 return True           
-# 
-#             # a bit of a hack to make sure name changes get pushed down immediately                
-#             self.brokers[newDev.id].refreshFromServer()
-#                 
-#         return False
+    def didDeviceCommPropertyChange(self, origDev, newDev):
+    
+        if newDev.deviceTypeId == "mqttBroker":
+            if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
+                return True           
+            if origDev.pluginProps.get('port', None) != newDev.pluginProps.get('port', None):
+                return True           
+            if origDev.pluginProps.get('protocol', None) != newDev.pluginProps.get('protocol', None):
+                return True           
+            if origDev.pluginProps.get('transport', None) != newDev.pluginProps.get('transport', None):
+                return True           
+            if origDev.pluginProps.get('username', None) != newDev.pluginProps.get('username', None):
+                return True           
+            if origDev.pluginProps.get('password', None) != newDev.pluginProps.get('password', None):
+                return True           
+            if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
+                return True           
+
+            # a bit of a hack to make sure name changes get pushed down immediately                
+            self.brokers[newDev.id].refreshFromServer()
+                
+        return False
     
     ########################################
     # Trigger (Event) handling 
@@ -209,8 +244,8 @@ class Plugin(indigo.PluginBase):
         del self.triggers[trigger.id]
 
     def triggerCheck(self, device):
-        for triggerId, trigger in sorted(self.triggers.iteritems()):
-            if trigger.pluginProps["brokerID"] == str(device.id):
+        for trigger in self.triggers.values():
+            if (trigger.pluginProps["brokerID"] == "-1") or (trigger.pluginProps["brokerID"] == str(device.id)):
                 if trigger.pluginTypeId == "messageReceived":
                     indigo.trigger.execute(trigger)
                 elif trigger.pluginTypeId == "regexMatch":
@@ -224,6 +259,42 @@ class Plugin(indigo.PluginBase):
                     pattern = trigger.pluginProps["stringPattern"]
                     if device.states["last_topic"] == pattern:
                         indigo.trigger.execute(trigger)
+                elif trigger.pluginTypeId == "topicMatch":
+                    topic_parts = splitall(device.states["last_topic"])
+#                    self.logger.debug("{}: topicMatch topics parts = {}".format(trigger.name, topic_parts))
+                    last_payload = device.states["last_payload"]
+#                    self.logger.debug("{}: topicMatch last_payload ({}) = {}".format(trigger.name, type(last_payload), last_payload))
+                    try:
+                        payload = json.loads(device.states["last_payload"])
+                    except:
+                        self.logger.debug("{}: topicMatch json error, payload = {}".format(trigger.name, device.states["last_payload"]))
+                        return
+                    
+                    # got everything, now to check the topics
+                    i = 0
+                    is_match = True
+                    for match in trigger.pluginProps['match_list']:
+                        try:                          
+                            topic_part = topic_parts[i]
+                        except:
+                            topic_part = ""
+                        i += 1
+
+                        p = match.split(": ")
+#                        self.logger.debug("{}: topicMatch match_type = {}, match_string = {}, topic_part = {}".format(trigger.name, p[0], p[1], topic_part))
+                        if p[0] == "Skip":
+                            continue
+                        elif p[0] == "Match":
+                            if topic_part == p[1]:
+                                continue
+                            else:
+                                is_match = False
+                                break      
+                        
+                    # here after all items in match_list have been checked, or a match failed
+                    if is_match:                    
+                        indigo.trigger.execute(trigger)
+                    
                 else:
                     self.logger.error("Unknown Trigger Type %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
 
@@ -347,13 +418,12 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def validateDeviceConfigUi(self, valuesDict, typeId, deviceId):
+        errorsDict = indigo.Dict()
 
         if typeId == "mqttBroker": 
 
-            try:
-                broker = self.brokers[deviceId]
-            except:
-                return True
+            # test the templates to make sure they return valid data
+            
                 
             # if the subscription list changes, calc changes and update the broker
 
@@ -381,6 +451,43 @@ class Plugin(indigo.PluginBase):
 
         return (True, valuesDict)
 
+    ########################################
+    # Methods for the topic match config panel
+    ########################################
+    
+    def addMatch(self, valuesDict, typeId, deviceId):
+        match_type = valuesDict["match_type"]
+        match_string = valuesDict["match_string"]
+        s = "{}: {}".format(match_type, match_string)
+        match_list = list()
+        if 'match_list' in valuesDict:
+            for t in valuesDict['match_list']:
+                match_list.append(t) 
+        if s not in match_list:
+            match_list.append(s)
+        valuesDict['match_list'] = match_list
+        valuesDict["match_type"] = "Match"
+        valuesDict["match_string"] = ""
+        return valuesDict
+
+    def deleteMatches(self, valuesDict, typeId, deviceId):
+        match_list = list()
+        if 'match_list' in valuesDict:
+            for t in valuesDict['match_list']:
+                match_list.append(t) 
+        for t in valuesDict['match_items']:
+            if t in match_list:
+                match_list.remove(t)
+        valuesDict['match_list'] = match_list
+        return valuesDict
+
+    def matchList(self, filter, valuesDict, typeId, deviceId):
+        returnList = list()
+        if 'match_list' in valuesDict:
+            for match in valuesDict['match_list']:
+                returnList.append(match)
+        return returnList
+        
 
     ########################################
     # Menu Methods
@@ -419,18 +526,8 @@ class Plugin(indigo.PluginBase):
         qos = int(pluginAction.props["qos"])
         retain = bool(pluginAction.props["retain"])
         pubDevice = indigo.devices[int(pluginAction.props["device"])]
-        payload = {}
-        payload['address'] = pubDevice.address
-        payload['name'] = pubDevice.name
-        payload['model'] = pubDevice.model
-        payload['id'] =   pubDevice.id
-        payload['states'] = {}
-        for key in pubDevice.states:
-            payload['states'] [key] = pubDevice.states[key]
-        payload['pluginProps'] = {}
-        for key in pubDevice.pluginProps:
-            payload['states'] [key] = pubDevice.pluginProps[key]
-        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
+        payload = makeDevForJSON(pubDevice)
+#        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
     def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -447,7 +544,10 @@ class Plugin(indigo.PluginBase):
 
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
-        retList = []
+        if "Any" in filter:
+            retList = [("-1","- Any Broker -")]
+        else:
+            retList = []
         for brokerID in self.brokers:
             device = indigo.devices[int(brokerID)]
             retList.append((device.id, device.name))
@@ -565,3 +665,14 @@ class Plugin(indigo.PluginBase):
         return retList
 
 
+    ########################################################################
+    # Used to fetch waiting messages
+    ########################################################################
+
+    def fetchQueuedMessageAction(self, action, dev, callerWaitingForResult):
+        messageType = action.props["fetch_messageType"]
+        queue = self.queueDict.get(messageType, None)
+        if not queue or queue.empty():
+            return None
+        return queue.get()
+    
