@@ -135,14 +135,10 @@
         </ConfigUI>
     </Action>
     
-    <Action id="fetchQueuedMessage" hidden="true">
+    <Action id="fetchQueuedMessage" uiPath="hidden">
         <Name>Fetch Queued Message</Name>
         <CallbackMethod>fetchQueuedMessageAction</CallbackMethod>
-        <ConfigUI>
-            <Field id="fetch_messageType" type="textfield">
-                <Label>Message Type:</Label>
-            </Field>
-        </ConfigUI>
+        <ConfigUI><Field id="fetch_messageType" type="textfield"/></ConfigUI>
     </Action>
     
 </Actions>

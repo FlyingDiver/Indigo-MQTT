@@ -75,43 +75,18 @@ class Plugin(indigo.PluginBase):
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
         self.queueDict = {}
-        self.server = None
 
         indigo.devices.subscribeToChanges()
         indigo.variables.subscribeToChanges()
-        
-        if bool(self.pluginPrefs.get(u"runMQTTServer", False)):
-            self.logger.info(u"Starting mosquitto MQTT server")
-            args = [os.getcwd()+'/mosquitto', '-p', '1883']
-            if bool(self.pluginPrefs.get(u"verboseMQTTServer", False)):
-                args.append('-v')
-            self.server = Popen(args, stderr=PIPE, bufsize=1)
-            self.q_stderr = Queue()
-            t = Thread(target=enqueue_output, args=(self.server.stderr, self.q_stderr))
-            t.daemon = True
-            t.start()
-
-            self.sleep(3.0)  
-                    
+                            
     def shutdown(self):
         self.logger.info(u"Shutting down MQTT")
-        if self.server:
-            self.server.kill()
-
 
     def runConcurrentThread(self):
         try:
             while True:
                 for broker in self.brokers.values():
-                    broker.loop()
-                if self.server:
-                    try:  
-                        line = self.q_stderr.get_nowait()
-                    except Empty:
-                        pass
-                    else: 
-                        self.logger.debug(u"(mosquitto) {}".format(line.rstrip()))
-                
+                    broker.loop()                
                 self.sleep(0.1)
         except self.stopThread:
             pass        
@@ -698,7 +673,7 @@ class Plugin(indigo.PluginBase):
             'version': 0,
             'message_type' : messageType,
             'topic_string' : device.states['last_topic'],
-            'payload_json' : device.states['last_payload'] 
+            'payload' : device.states['last_payload'] 
         }
             
         self.queueDict[messageType].put(message)
