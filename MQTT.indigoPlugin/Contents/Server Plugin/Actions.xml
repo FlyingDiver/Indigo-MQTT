@@ -125,9 +125,24 @@
         <CallbackMethod>clearAllSubscriptionsAction</CallbackMethod>
     </Action>
     
+    <Action id="queue_payload" deviceFilter="self.mqttBroker">
+        <Name>Queue Last Message for Dispatch</Name>
+        <CallbackMethod>queueMessageForDispatchAction</CallbackMethod>
+        <ConfigUI>
+            <Field id="message_type" type="textfield">
+                <Label>Message Type:</Label>
+            </Field>
+        </ConfigUI>
+    </Action>
+    
     <Action id="fetchQueuedMessage" hidden="true">
+        <Name>Fetch Queued Message</Name>
         <CallbackMethod>fetchQueuedMessageAction</CallbackMethod>
-        <ConfigUI><Field id="fetch_messageType" type="textfield"/></ConfigUI>
+        <ConfigUI>
+            <Field id="fetch_messageType" type="textfield">
+                <Label>Message Type:</Label>
+            </Field>
+        </ConfigUI>
     </Action>
     
 </Actions>

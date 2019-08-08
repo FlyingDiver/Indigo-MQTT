@@ -683,15 +683,37 @@ class Plugin(indigo.PluginBase):
         retList.sort(key=lambda tup: tup[1])
         return retList
 
+    ########################################################################
+    # Used to queue waiting messages
+    ########################################################################
+
+    def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
+
+        messageType = action.props["message_type"]
+        queue = self.queueDict.get(messageType, None)
+        if not queue:
+            self.queueDict[messageType] = Queue()
+
+        message =  {
+            'version': 0,
+            'message_type' : messageType,
+            'topic_string' : device.states['last_topic'],
+            'payload_json' : device.states['last_payload'] 
+        }
+            
+        self.queueDict[messageType].put(message)
+        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, self.queueDict[messageType].qsize()))
+        
 
     ########################################################################
     # Used to fetch waiting messages
     ########################################################################
 
-    def fetchQueuedMessageAction(self, action, dev, callerWaitingForResult):
-        messageType = action.props["fetch_messageType"]
+    def fetchQueuedMessageAction(self, action, device, callerWaitingForResult):
+        messageType = action.props["message_type"]
         queue = self.queueDict.get(messageType, None)
         if not queue or queue.empty():
             return None
+        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         return queue.get()
     
