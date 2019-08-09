@@ -88,29 +88,29 @@
 
             <!--  This section for managing device publishing to this broker  -->
 
-            <Field id="devices_doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="devices">
+            <Field id="devices_doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
                 <Label>Exclude Devices</Label>
             </Field>
             <Field id="devices_excludeLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="devices">
                 <Label>If checked the list of devices below will be excluded from publishing.  If not checked, ONLY the devices below will be published. </Label>
             </Field>
             <Field id="devices_separator1" type="separator" visibleBindingId="section" visibleBindingValue="devices"/>
-            <Field id="deviceProtocol" type="menu" defaultValue="Insteon" visibleBindingId="section" visibleBindingValue="devices">
+            <Field id="deviceProtocol" type="menu" defaultValue="Insteon" visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
                 <Label>Select Plugin:</Label>
                 <List method="getProtocolList" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
             </Field>
-			<Field id="devices_deviceSelected" type="menu" visibleBindingId="section" visibleBindingValue="devices">
+			<Field id="devices_deviceSelected" type="menu" visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
 				<Label>Device to Publish:</Label>
 				<List method="getProtocolDevices" dynamicReload="true" class="self" filter="" />
                 <CallbackMethod>menuChanged</CallbackMethod>
 			</Field>
-            <Field id="devices_addDevice" type="button" visibleBindingId="section" visibleBindingValue="devices">
+            <Field id="devices_addDevice" type="button" visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
                 <Label/>
                 <Title>Add Device</Title>
                 <CallbackMethod>addDevice</CallbackMethod>
             </Field>
-            <Field id="devices_list" type="list" rows="15" visibleBindingId="section" visibleBindingValue="devices">
+            <Field id="devices_list" type="list" rows="15" visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
                 <Label>Published Devices:</Label>
                 <List class="self" method="publishedDeviceList" dynamicReload="true"/>
             </Field>

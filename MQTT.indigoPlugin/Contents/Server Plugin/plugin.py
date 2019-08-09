@@ -229,6 +229,7 @@ class Plugin(indigo.PluginBase):
 
     def triggerStartProcessing(self, trigger):
         self.logger.debug("Adding Trigger %s (%d)" % (trigger.name, trigger.id))
+        self.logger.debug("Trigger {} = {}".format(trigger.name, trigger))
         assert trigger.id not in self.triggers
         self.triggers[trigger.id] = trigger
 
@@ -255,9 +256,7 @@ class Plugin(indigo.PluginBase):
                         indigo.trigger.execute(trigger)
                 elif trigger.pluginTypeId == "topicMatch":
                     topic_parts = splitall(device.states["last_topic"])
-#                    self.logger.debug("{}: topicMatch topics parts = {}".format(trigger.name, topic_parts))
                     last_payload = device.states["last_payload"]
-#                    self.logger.debug("{}: topicMatch last_payload ({}) = {}".format(trigger.name, type(last_payload), last_payload))
                     try:
                         payload = json.loads(device.states["last_payload"])
                     except:
@@ -415,6 +414,7 @@ class Plugin(indigo.PluginBase):
         errorsDict = indigo.Dict()
 
         if typeId == "mqttBroker": 
+            broker = self.brokers[deviceId]
 
             # test the templates to make sure they return valid data
             
@@ -665,19 +665,20 @@ class Plugin(indigo.PluginBase):
     def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
 
         messageType = action.props["message_type"]
-        queue = self.queueDict.get(messageType, None)
-        if not queue:
-            self.queueDict[messageType] = Queue()
+        queueInfo = self.queueDict.get(messageType, None)
+        if not queueInfo:
+            queueInfo = { 'queue': Queue(), 'subscribed': [] }
+            self.queueDict[messageType] = queueInfo
 
         message =  {
             'version': 0,
             'message_type' : messageType,
-            'topic_string' : device.states['last_topic'],
+            'topic_parts'  : splitall(device.states["last_topic"]),
             'payload' : device.states['last_payload'] 
         }
             
-        self.queueDict[messageType].put(message)
-        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, self.queueDict[messageType].qsize()))
+        queueInfo['queue'].put(message)
+        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queueInfo['queue'].qsize()))
         
 
     ########################################################################
@@ -686,9 +687,9 @@ class Plugin(indigo.PluginBase):
 
     def fetchQueuedMessageAction(self, action, device, callerWaitingForResult):
         messageType = action.props["message_type"]
-        queue = self.queueDict.get(messageType, None)
-        if not queue or queue.empty():
+        queueInfo = self.queueDict.get(messageType, None)
+        if not queueInfo or queueInfo['queue'].empty():
             return None
-        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
-        return queue.get()
+        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queueInfo['queue'].qsize()))
+        return queueInfo['queue'].get()
     
