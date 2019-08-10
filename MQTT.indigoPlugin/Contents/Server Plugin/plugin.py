@@ -100,7 +100,6 @@ class Plugin(indigo.PluginBase):
             devList = brokerDevice.pluginProps.get(u'published_devices', None)
             if devList and unicode(newDevice.id) in devList:
                 dev_data = makeDevForJSON(newDevice)
-#                self.logger.debug(u"deviceUpdated, dev_data = {}".format(dev_data))
                 topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
                 if not topic_template:
                     return
@@ -113,7 +112,6 @@ class Plugin(indigo.PluginBase):
 
                 qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
-#                self.logger.debug(u"deviceUpdated, topic = {}, payload = {}".format(topic, payload))
                 broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def variableUpdated(self, origVariable, newVariable):
@@ -124,7 +122,6 @@ class Plugin(indigo.PluginBase):
             varList = brokerDevice.pluginProps.get(u'published_variables', None)
             if varList and unicode(newVariable.id) in varList:
                 var_data = makeVarForJSON(newVariable)
-#                self.logger.debug(u"variableUpdated, var_data = {}".format(var_data))
                 topic_template =  brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
                     return
@@ -134,9 +131,9 @@ class Plugin(indigo.PluginBase):
                     return
                 payload = pystache.render(payload_template, var_data)
                 payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
+                
                 qos = int(brokerDevice.pluginProps.get("variable_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("variable_template_retain", False))
-#                self.logger.debug(u"variableUpdated, topic = {}, payload = {}".format(topic, payload))
                 broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
         
@@ -228,13 +225,12 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def triggerStartProcessing(self, trigger):
-        self.logger.debug("Adding Trigger %s (%d)" % (trigger.name, trigger.id))
-        self.logger.debug("Trigger {} = {}".format(trigger.name, trigger))
+        self.logger.debug("{}: Adding Trigger".format(trigger.name))
         assert trigger.id not in self.triggers
         self.triggers[trigger.id] = trigger
 
     def triggerStopProcessing(self, trigger):
-        self.logger.debug("Removing Trigger %s (%d)" % (trigger.name, trigger.id))
+        self.logger.debug("{}: Removing Trigger".format(trigger.name))
         assert trigger.id in self.triggers
         del self.triggers[trigger.id]
 
@@ -255,13 +251,8 @@ class Plugin(indigo.PluginBase):
                     if device.states["last_topic"] == pattern:
                         indigo.trigger.execute(trigger)
                 elif trigger.pluginTypeId == "topicMatch":
+#                    self.logger.debug("{}: Testing Topic Match Trigger, match list = {}".format(trigger.name, trigger.pluginProps['match_list']))
                     topic_parts = splitall(device.states["last_topic"])
-                    last_payload = device.states["last_payload"]
-                    try:
-                        payload = json.loads(device.states["last_payload"])
-                    except:
-                        self.logger.debug("{}: topicMatch json error, payload = {}".format(trigger.name, device.states["last_payload"]))
-                        return
                     
                     # got everything, now to check the topics
                     i = 0
@@ -414,8 +405,8 @@ class Plugin(indigo.PluginBase):
         errorsDict = indigo.Dict()
 
         if typeId == "mqttBroker": 
-            broker = self.brokers[deviceId]
-
+            broker = self.brokers.get(deviceId, None)
+    
             # test the templates to make sure they return valid data
             
                 
@@ -430,13 +421,15 @@ class Plugin(indigo.PluginBase):
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
                     topic = s[2:]
-                    broker.unsubscribe(topic=topic)
+                    if broker:
+                        broker.unsubscribe(topic=topic)
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
                     qos = int(s[0:1])
                     topic = s[2:]
-                    broker.subscribe(topic=topic, qos=qos)
+                    if broker:
+                        broker.subscribe(topic=topic, qos=qos)
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
         
@@ -510,7 +503,7 @@ class Plugin(indigo.PluginBase):
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
-        retain = bool(pluginAction.props["retain"])
+        retain = int(pluginAction.props["retain"])
         self.logger.debug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
@@ -518,10 +511,10 @@ class Plugin(indigo.PluginBase):
         broker = self.brokers[brokerDevice.id]
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         qos = int(pluginAction.props["qos"])
-        retain = bool(pluginAction.props["retain"])
+        retain = int(pluginAction.props["retain"])
         pubDevice = indigo.devices[int(pluginAction.props["device"])]
         payload = makeDevForJSON(pubDevice)
-#        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
+        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
     def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -603,7 +596,6 @@ class Plugin(indigo.PluginBase):
 
         retList = []
         indigoInstallPath = indigo.server.getInstallFolderPath()
-#        pluginFolders =['Plugins', 'Plugins (Disabled)']
         pluginFolders =['Plugins']
         for pluginFolder in pluginFolders:
             tempList = []
@@ -665,10 +657,10 @@ class Plugin(indigo.PluginBase):
     def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
 
         messageType = action.props["message_type"]
-        queueInfo = self.queueDict.get(messageType, None)
-        if not queueInfo:
-            queueInfo = { 'queue': Queue(), 'subscribed': [] }
-            self.queueDict[messageType] = queueInfo
+        queue = self.queueDict.get(messageType, None)
+        if not queue:
+            queue = Queue()
+            self.queueDict[messageType] = queue
 
         message =  {
             'version': 0,
@@ -676,10 +668,9 @@ class Plugin(indigo.PluginBase):
             'topic_parts'  : splitall(device.states["last_topic"]),
             'payload' : device.states['last_payload'] 
         }
-            
-        queueInfo['queue'].put(message)
-        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queueInfo['queue'].qsize()))
-        
+        queue.put(message)
+#        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
 
     ########################################################################
     # Used to fetch waiting messages
@@ -687,9 +678,9 @@ class Plugin(indigo.PluginBase):
 
     def fetchQueuedMessageAction(self, action, device, callerWaitingForResult):
         messageType = action.props["message_type"]
-        queueInfo = self.queueDict.get(messageType, None)
-        if not queueInfo or queueInfo['queue'].empty():
+        queue = self.queueDict.get(messageType, None)
+        if not queue or queue.empty():
             return None
-        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queueInfo['queue'].qsize()))
-        return queueInfo['queue'].get()
+        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        return queue.get()
     
