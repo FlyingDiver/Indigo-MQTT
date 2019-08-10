@@ -23,24 +23,7 @@
                 <Label>String to match:</Label>
             </Field>
             <Field id="stringNote" type="label" fontSize="small" fontColor="darkgray">
-                <Label>String Match is an exact match to the Topic.  For substring matches, use the RegEx Pattern Match Event.</Label>
-            </Field>
-        </ConfigUI>
-    </Event>
-
-    <Event id="regexMatch">
-        <Name>Topic RegEx Pattern Match</Name>
-        <ConfigUI>
-            <Field id="brokerID" type="menu">
-                <Label>Select Broker:</Label>
-                <List class="self" filter="Any" method="pickBroker" dynamicReload="true"/>
-            </Field>            
-             <Field id="regexPattern" type="textfield">
-                <Label>Regular Expression:</Label>
-            </Field>
-            <Field id="simpleSeparator2" type="separator"/>
-            <Field id="regexNote" type="label" fontSize="small" fontColor="darkgray">
-                <Label>For information on how to construct regular expressions, visit http://www.regular-expressions.info/tutorial.html</Label>
+                <Label>String Match is an exact match to the Topic.  For partial matches, use the Topic Component Match.</Label>
             </Field>
         </ConfigUI>
     </Event>
@@ -80,6 +63,15 @@
                 <Label/>
                 <Title>Delete Matches</Title>
                 <CallbackMethod>deleteMatches</CallbackMethod>
+            </Field>
+            <Field id="queueMessage" type="checkbox" defaultValue="true">
+                <Label>Queue Message</Label>
+            </Field>
+            <Field id="queueMessageNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Immediately queue message for dispatch.  No additional actions required.</Label>
+            </Field>
+            <Field id="message_type" type="textfield">
+                <Label>Message Type:</Label>
             </Field>
         </ConfigUI>
     </Event>

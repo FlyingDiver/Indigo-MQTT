@@ -120,11 +120,6 @@
         </ConfigUI>
     </Action>
 
-    <Action id="clear_subscriptions" deviceFilter="self.mqttBroker">
-        <Name>Clear all Topic Subscriptions</Name>
-        <CallbackMethod>clearAllSubscriptionsAction</CallbackMethod>
-    </Action>
-    
     <Action id="queue_payload" deviceFilter="self.mqttBroker">
         <Name>Queue Last Message for Dispatch</Name>
         <CallbackMethod>queueMessageForDispatchAction</CallbackMethod>

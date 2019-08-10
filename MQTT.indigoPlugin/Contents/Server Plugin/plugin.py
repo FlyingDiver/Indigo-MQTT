@@ -7,7 +7,6 @@ import plistlib
 import json
 import logging
 import pystache
-import re
 
 from subprocess import PIPE, Popen
 from threading  import Thread
@@ -239,22 +238,12 @@ class Plugin(indigo.PluginBase):
             if (trigger.pluginProps["brokerID"] == "-1") or (trigger.pluginProps["brokerID"] == str(device.id)):
                 if trigger.pluginTypeId == "messageReceived":
                     indigo.trigger.execute(trigger)
-                elif trigger.pluginTypeId == "regexMatch":
-                    pattern = trigger.pluginProps["regexPattern"]
-                    cPattern = re.compile(pattern)
-                    match = cPattern.search(device.states["last_topic"])
-                    if match:
-                        regexMatch = match.group()
-                        indigo.trigger.execute(trigger)
                 elif trigger.pluginTypeId == "stringMatch":
                     pattern = trigger.pluginProps["stringPattern"]
                     if device.states["last_topic"] == pattern:
                         indigo.trigger.execute(trigger)
                 elif trigger.pluginTypeId == "topicMatch":
-#                    self.logger.debug("{}: Testing Topic Match Trigger, match list = {}".format(trigger.name, trigger.pluginProps['match_list']))
                     topic_parts = splitall(device.states["last_topic"])
-                    
-                    # got everything, now to check the topics
                     i = 0
                     is_match = True
                     for match in trigger.pluginProps['match_list']:
@@ -263,9 +252,7 @@ class Plugin(indigo.PluginBase):
                         except:
                             topic_part = ""
                         i += 1
-
                         p = match.split(": ")
-#                        self.logger.debug("{}: topicMatch match_type = {}, match_string = {}, topic_part = {}".format(trigger.name, p[0], p[1], topic_part))
                         if p[0] == "Skip":
                             continue
                         elif p[0] == "Match":
@@ -276,11 +263,27 @@ class Plugin(indigo.PluginBase):
                                 break      
                         
                     # here after all items in match_list have been checked, or a match failed
-                    if is_match:                    
+                    if is_match:        
+                        if trigger.pluginProps["queueMessage"]:
+                            messageType = trigger.pluginProps["message_type"]
+                            queue = self.queueDict.get(messageType, None)
+                            if not queue:
+                                queue = Queue()
+                                self.queueDict[messageType] = queue
+                            message =  {
+                                'version': 0,
+                                'message_type' : messageType,
+                                'topic_parts'  : splitall(device.states["last_topic"]),
+                                'payload' : device.states['last_payload'] 
+                            }
+                            queue.put(message)
+                            self.logger.threaddebug(u"{}: triggerCheck queueMessage, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+                            indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
+                        
                         indigo.trigger.execute(trigger)
                     
                 else:
-                    self.logger.error("Unknown Trigger Type %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+                    self.logger.error("{}: Unknown Trigger Type {}".format(trigger.name, trigger.pluginTypeId))
 
 
     ########################################
@@ -525,9 +528,6 @@ class Plugin(indigo.PluginBase):
     def delSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         self.delSubscription(brokerDevice.id, topic)
-
-    def clearAllSubscriptionsAction(self, pluginAction, brokerDevice, callerWaitingForResult):
-        self.clearAllSubscriptions(brokerDevice.id)
 
 
     def pickBroker(self, filter=None, valuesDict=None, typeId=0, targetId=0):
