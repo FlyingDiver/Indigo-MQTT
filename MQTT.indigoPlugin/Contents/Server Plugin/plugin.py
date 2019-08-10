@@ -504,7 +504,7 @@ class Plugin(indigo.PluginBase):
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
         retain = int(pluginAction.props["retain"])
-        self.logger.debug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
+        self.logger.threaddebug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def publishDeviceAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -514,7 +514,7 @@ class Plugin(indigo.PluginBase):
         retain = int(pluginAction.props["retain"])
         pubDevice = indigo.devices[int(pluginAction.props["device"])]
         payload = makeDevForJSON(pubDevice)
-        self.logger.debug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
+        self.logger.threaddebug(u"{}: publishDeviceAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
     def addSubscriptionAction(self, pluginAction, brokerDevice, callerWaitingForResult):
@@ -669,7 +669,7 @@ class Plugin(indigo.PluginBase):
             'payload' : device.states['last_payload'] 
         }
         queue.put(message)
-#        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        self.logger.threaddebug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
 
     ########################################################################
@@ -681,6 +681,6 @@ class Plugin(indigo.PluginBase):
         queue = self.queueDict.get(messageType, None)
         if not queue or queue.empty():
             return None
-        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        self.logger.threaddebug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         return queue.get()
     

@@ -116,8 +116,8 @@ class Broker(object):
         self.logger.threaddebug(u"{}: Message published: {}".format(self.device.name, mid))
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
-        self.logger.debug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, granted_qos))
+        self.logger.threaddebug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, granted_qos))
 
     def on_unsubscribe(self, client, userdata, mid):
-        self.logger.debug(u"{}: Unsubscribe complete: {}".format(self.device.name, mid))
+        self.logger.threaddebug(u"{}: Unsubscribe complete: {}".format(self.device.name, mid))
 
