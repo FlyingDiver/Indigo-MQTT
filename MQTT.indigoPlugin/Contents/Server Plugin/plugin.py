@@ -7,6 +7,7 @@ import plistlib
 import json
 import logging
 import pystache
+import re
 
 from subprocess import PIPE, Popen
 from threading  import Thread
