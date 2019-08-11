@@ -253,7 +253,7 @@ class Plugin(indigo.PluginBase):
                             topic_part = ""
                         i += 1
                         p = match.split(": ")
-                        if p[0] == "Skip":
+                        if p[0] in ["Any", "Skip"]:
                             continue
                         elif p[0] == "Match":
                             if topic_part == p[1]:

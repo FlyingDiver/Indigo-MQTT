@@ -40,7 +40,7 @@
                 <Label>Match Type:</Label>
         		<List>
         			<Option value="Match">Match</Option>
-        			<Option value="Skip">Skip</Option>
+        			<Option value="Any">Any (wildcard)</Option>
         		</List>
         	</Field>
             <Field id="match_string" type="textfield" defaultValue="">

@@ -145,7 +145,7 @@
             <!--  This section for defining the format for device broadcasts to this broker  -->
 
             <Field id="device_template_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="device_template">
-                <Label>See the Wiki for how to use this section. </Label>
+                <Label>See the Wiki for how to use this section.</Label>
             </Field>
             <Field id="device_template_separator1" type="separator" visibleBindingId="section" visibleBindingValue="device_template"/>
             <Field id="device_template_topic" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
