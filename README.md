@@ -13,6 +13,9 @@ This plugin acts as a client to one or more MQTT brokers.
 5. Set up triggers for received messages
 6. Publish messages using Actions or Scripts.
 
+## Use with the Shims plugin to create Indigo devices
+
+
 ## Scripting Examples
 
 **PluginID**: com.flyingdiver.indigoplugin.mqtt
