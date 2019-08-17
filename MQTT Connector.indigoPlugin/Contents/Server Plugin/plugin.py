@@ -261,21 +261,7 @@ class Plugin(indigo.PluginBase):
                     # here after all items in match_list have been checked, or a match failed
                     if is_match:        
                         if trigger.pluginProps["queueMessage"]:
-                            messageType = trigger.pluginProps["message_type"]
-                            queue = self.queueDict.get(messageType, None)
-                            if not queue:
-                                queue = Queue()
-                                self.queueDict[messageType] = queue
-                            message =  {
-                                'version': 0,
-                                'message_type' : messageType,
-                                'topic_parts'  : splitall(device.states["last_topic"]),
-                                'payload' : device.states['last_payload'] 
-                            }
-                            queue.put(message)
-                            self.logger.debug(u"{}: triggerCheck queueMessage, queue = {} ({})".format(device.name, messageType, queue.qsize()))
-                            indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
-                        
+                            self.queueLastMessage(device, trigger.pluginProps["message_type"])
                         indigo.trigger.execute(trigger)
                     
                 else:
@@ -651,8 +637,10 @@ class Plugin(indigo.PluginBase):
     ########################################################################
 
     def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
-
-        messageType = action.props["message_type"]
+        self.queueLastMessage(device, action.props["message_type"])
+        
+        
+    def queueLastMessage(self, device, messageType):
         queue = self.queueDict.get(messageType, None)
         if not queue:
             queue = Queue()
@@ -667,7 +655,9 @@ class Plugin(indigo.PluginBase):
         queue.put(message)
         self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
-
+        if queue.qsize() > 10:
+            self.logger.warning("Queue for message type '{}' has {} messages pending".format(messageType, queue.qsize()))
+            
     ########################################################################
     # Used to fetch waiting messages
     ########################################################################
