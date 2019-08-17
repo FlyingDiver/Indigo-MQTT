@@ -52,11 +52,6 @@ def makeVarForJSON(variable):
     var_data['value'] = variable.value
     return var_data
     
-def enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
-        queue.put(line)
-    out.close()
- 
 ################################################################################
 class Plugin(indigo.PluginBase):
 
@@ -278,7 +273,7 @@ class Plugin(indigo.PluginBase):
                                 'payload' : device.states['last_payload'] 
                             }
                             queue.put(message)
-                            self.logger.threaddebug(u"{}: triggerCheck queueMessage, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+                            self.logger.debug(u"{}: triggerCheck queueMessage, queue = {} ({})".format(device.name, messageType, queue.qsize()))
                             indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
                         
                         indigo.trigger.execute(trigger)
@@ -670,7 +665,7 @@ class Plugin(indigo.PluginBase):
             'payload' : device.states['last_payload'] 
         }
         queue.put(message)
-        self.logger.threaddebug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        self.logger.debug(u"{}: queueMessageForDispatchAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
 
     ########################################################################
@@ -682,6 +677,6 @@ class Plugin(indigo.PluginBase):
         queue = self.queueDict.get(messageType, None)
         if not queue or queue.empty():
             return None
-        self.logger.threaddebug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
+        self.logger.debug(u"{}: fetchQueuedMessageAction, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         return queue.get()
     
