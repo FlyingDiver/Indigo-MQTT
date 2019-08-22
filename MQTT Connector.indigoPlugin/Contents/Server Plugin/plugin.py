@@ -89,25 +89,35 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDevice, newDevice):
         indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
+
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
             devList = brokerDevice.pluginProps.get(u'published_devices', None)
-            if devList and unicode(newDevice.id) in devList:
-                dev_data = makeDevForJSON(newDevice)
-                topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
-                if not topic_template:
+    
+            if device.pluginProps.get(u'devices_doExcludes', False):
+                if devList and (unicode(newDevice.id) in devList):
+                    return            
+            else:
+                if not devList or (unicode(newDevice.id) not in devList):
                     return
-                topic = pystache.render(topic_template, dev_data)
-                payload_template = brokerDevice.pluginProps.get("device_template_payload", None)
-                if not payload_template:
-                    return
-                payload = pystache.render(payload_template, dev_data)
-                payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
+                
+            # if we got here, then this device should be published
+            
+            dev_data = makeDevForJSON(newDevice)
+            topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
+            if not topic_template:
+                return
+            topic = pystache.render(topic_template, dev_data)
+            payload_template = brokerDevice.pluginProps.get("device_template_payload", None)
+            if not payload_template:
+                return
+            payload = pystache.render(payload_template, dev_data)
+            payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
 
-                qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
-                retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
-                broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+            qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
+            retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
+            broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def variableUpdated(self, origVariable, newVariable):
         indigo.PluginBase.variableUpdated(self, origVariable, newVariable)
