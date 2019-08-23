@@ -89,21 +89,26 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDevice, newDevice):
         indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
+        if newDevice.deviceTypeId == "mqttBroker":          # can't do updates on broker device, leads to infinite loop
+            return      
 
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
-            devList = brokerDevice.pluginProps.get(u'published_devices', None)
-    
-            if device.pluginProps.get(u'devices_doExcludes', False):
-                if devList and (unicode(newDevice.id) in devList):
-                    return            
-            else:
-                if not devList or (unicode(newDevice.id) not in devList):
-                    return
+            devList = brokerDevice.pluginProps.get(u'published_devices', [])
+            doExcludes = brokerDevice.pluginProps.get(u'devices_doExcludes', False)
+            listedDevice = unicode(newDevice.id) in devList
+            self.logger.threaddebug(u"{}: deviceUpdated: doExcludes = {}, listedDevice = {}".format(newDevice.name, doExcludes, listedDevice))
+            self.logger.threaddebug(u"{}: deviceUpdated: id = {}, devList = {}".format(newDevice.name, newDevice.id, devList))
+
+            if doExcludes and listedDevice:                   # excluded, so skip
+                return      
+            elif (not doExcludes) and (not listedDevice):       # not included, so skip
+                return
                 
             # if we got here, then this device should be published
             
+            self.logger.debug(u"{}: deviceUpdated: publishing device".format(newDevice.name))
             dev_data = makeDevForJSON(newDevice)
             topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
             if not topic_template:
@@ -124,8 +129,9 @@ class Plugin(indigo.PluginBase):
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
-            varList = brokerDevice.pluginProps.get(u'published_variables', None)
-            if varList and unicode(newVariable.id) in varList:
+            varList = brokerDevice.pluginProps.get(u'published_variables', [])
+            if unicode(newVariable.id) in varList:
+                self.logger.debug(u"{}: variableUpdated: publishing variable".format(newVariable.name))
                 var_data = makeVarForJSON(newVariable)
                 topic_template =  brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
