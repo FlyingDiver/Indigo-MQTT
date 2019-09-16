@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 ####################
 
+import time
 import logging
 import indigo
 
@@ -13,7 +14,8 @@ class Broker(object):
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.Broker")
         self.device = device
-
+        self.reconnectTime = None
+    
         self.address = device.pluginProps.get(u'address', "")
         self.port = int(device.pluginProps.get(u'port', 1883))
         self.protocol = int(device.pluginProps.get(u'protocol', 4))
@@ -53,15 +55,31 @@ class Broker(object):
         except:
             self.device.updateStateOnServer(key="status", value="Connection Failed")
             self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-
+            self.connected = False
+            self.reconnectDelay = 5.0
+            self.reconnectTime = time.time() + self.reconnectDelay
+        else:
+            self.connected = True
+            
     def __del__(self):
         self.client.disconnect()
         self.device.updateStateOnServer(key="status", value="Not Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
       
     def loop(self):
-        self.client.loop(timeout=1.0)
-          
+        if self.connected:
+            self.client.loop(timeout=0.5)
+        elif self.reconnectTime and (time.time() > self.reconnectTime):
+            self.logger.debug(u"{}: Attempting reconnect".format(self.device.name))
+            try:
+                self.client.connect(self.address, self.port, 60)
+            except:
+                if self.reconnectDelay < 300.0:
+                    self.reconnectDelay = self.reconnectDelay * 2.0
+                self.reconnectTime = time.time() + self.reconnectDelay
+            else:
+                self.connected = True
+            
     def publish(self, topic, payload=None, qos=0, retain=False):
         self.client.publish(topic, payload, qos, retain)
 
@@ -101,6 +119,9 @@ class Broker(object):
         self.logger.error(u"{}: Disconnected with result code {}".format(self.device.name, rc))
         self.device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+        self.connected = False
+        self.reconnectDelay = 1.0
+        self.reconnectTime = time.time() + self.reconnectDelay
 
     def on_message(self, client, userdata, msg):
         self.logger.threaddebug(u"{}: Message received: {}, payload: {}".format(self.device.name, msg.topic, msg.payload))

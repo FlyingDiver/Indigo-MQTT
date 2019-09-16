@@ -205,6 +205,8 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"{}: Stopping Device".format(device.name))
         if device.deviceTypeId == "mqttBroker":
             del self.brokers[device.id]
+            device.updateStateOnServer(key="status", value="Stopped")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
         else:
             self.logger.warning(u"{}: deviceStopComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
         
@@ -226,8 +228,11 @@ class Plugin(indigo.PluginBase):
             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
                 return True           
 
-            # a bit of a hack to make sure name changes get pushed down immediately                
-            self.brokers[newDev.id].refreshFromServer()
+            # a bit of a hack to make sure name changes get pushed down immediately
+            try:                
+                self.brokers[newDev.id].refreshFromServer()
+            except:
+                pass
                 
         return False
     
