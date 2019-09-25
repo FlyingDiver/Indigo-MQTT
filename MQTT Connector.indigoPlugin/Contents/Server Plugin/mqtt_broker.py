@@ -9,7 +9,7 @@ import indigo
 import paho.mqtt.client as mqtt
 
 ################################################################################
-class Broker(object):
+class MQTTBroker(object):
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.Broker")

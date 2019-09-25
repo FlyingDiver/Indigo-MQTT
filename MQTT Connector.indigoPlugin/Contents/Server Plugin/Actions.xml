@@ -2,7 +2,7 @@
 <Actions>
 	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=316</SupportURL>
 
-    <Action id="publish" deviceFilter="self.mqttBroker">
+    <Action id="publish" deviceFilter="self">
         <Name>Publish Message</Name>
         <CallbackMethod>publishMessageAction</CallbackMethod>
         <ConfigUI>
@@ -45,7 +45,7 @@
         </ConfigUI>
     </Action>
 
-    <Action id="publish_device" deviceFilter="self.mqttBroker">
+    <Action id="publish_device" deviceFilter="self">
         <Name>Publish Indigo Device Data</Name>
         <CallbackMethod>publishDeviceAction</CallbackMethod>
         <ConfigUI>
@@ -84,7 +84,7 @@
         </ConfigUI>
     </Action>
 
-    <Action id="add_subscription" deviceFilter="self.mqttBroker">
+    <Action id="add_subscription" deviceFilter="self">
         <Name>Add Topic Subscription</Name>
         <CallbackMethod>addSubscriptionAction</CallbackMethod>
         <ConfigUI>
@@ -106,7 +106,7 @@
         </ConfigUI>
     </Action>
     
-    <Action id="del_subscription" deviceFilter="self.mqttBroker">
+    <Action id="del_subscription" deviceFilter="self">
         <Name>Remove Topic Subscription</Name>
         <CallbackMethod>delSubscriptionAction</CallbackMethod>
         <ConfigUI>
@@ -120,7 +120,7 @@
         </ConfigUI>
     </Action>
 
-    <Action id="queue_payload" deviceFilter="self.mqttBroker">
+    <Action id="queue_payload" deviceFilter="self">
         <Name>Queue Last Message for Dispatch</Name>
         <CallbackMethod>queueMessageForDispatchAction</CallbackMethod>
         <ConfigUI>

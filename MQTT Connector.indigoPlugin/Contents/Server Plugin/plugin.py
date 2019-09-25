@@ -13,7 +13,8 @@ from subprocess import PIPE, Popen
 from threading  import Thread
 from Queue import Queue, Empty
 
-from mqtt_broker import Broker
+from mqtt_broker import MQTTBroker
+from dxl_broker import DXLBroker
 
 kCurDevVersCount = 0        # current version of plugin devices
     
@@ -89,7 +90,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDevice, newDevice):
         indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
-        if newDevice.deviceTypeId == "mqttBroker":          # can't do updates on broker device, leads to infinite loop
+        if newDevice.deviceTypeId in ["mqttBroker", "dxlBroker"]:          # can't do updates on broker device, leads to infinite loop
             return      
 
         for brokerID in self.brokers:
@@ -195,7 +196,10 @@ class Plugin(indigo.PluginBase):
         device.stateListOrDisplayStateIdChanged()
                 
         if device.deviceTypeId == "mqttBroker": 
-            self.brokers[device.id] = Broker(device)
+            self.brokers[device.id] = MQTTBroker(device)
+            
+        elif device.deviceTypeId == "dxlBroker": 
+            self.brokers[device.id] = DXLBroker(device)
             
         else:
             self.logger.warning(u"{}: deviceStartComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
@@ -203,7 +207,7 @@ class Plugin(indigo.PluginBase):
     
     def deviceStopComm(self, device):
         self.logger.info(u"{}: Stopping Device".format(device.name))
-        if device.deviceTypeId == "mqttBroker":
+        if device.deviceTypeId in ["mqttBroker", "dxlBroker"]:
             del self.brokers[device.id]
             device.updateStateOnServer(key="status", value="Stopped")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
@@ -226,6 +230,16 @@ class Plugin(indigo.PluginBase):
             if origDev.pluginProps.get('password', None) != newDev.pluginProps.get('password', None):
                 return True           
             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
+                return True           
+
+            # a bit of a hack to make sure name changes get pushed down immediately
+            try:                
+                self.brokers[newDev.id].refreshFromServer()
+            except:
+                pass
+                
+        elif newDev.deviceTypeId == "dxlBroker":
+            if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
                 return True           
 
             # a bit of a hack to make sure name changes get pushed down immediately
@@ -411,6 +425,35 @@ class Plugin(indigo.PluginBase):
         errorsDict = indigo.Dict()
 
         if typeId == "mqttBroker": 
+            broker = self.brokers.get(deviceId, None)
+    
+            # test the templates to make sure they return valid data
+            
+                
+            # if the subscription list changes, calc changes and update the broker
+
+            if not 'subscriptions' in valuesDict:
+                valuesDict['subscriptions'] = indigo.List()
+            if not 'old_subscriptions' in valuesDict:
+                valuesDict['old_subscriptions'] = indigo.List()
+            
+            # unsubscribe first in case the QoS changed
+            for s in valuesDict['old_subscriptions']:
+                if s not in valuesDict['subscriptions']:
+                    topic = s[2:]
+                    if broker:
+                        broker.unsubscribe(topic=topic)
+
+            for s in valuesDict['subscriptions']:
+                if s not in valuesDict['old_subscriptions']:
+                    qos = int(s[0:1])
+                    topic = s[2:]
+                    if broker:
+                        broker.subscribe(topic=topic, qos=qos)
+
+            valuesDict['old_subscriptions'] = valuesDict['subscriptions']
+        
+        elif typeId == "dxlBroker": 
             broker = self.brokers.get(deviceId, None)
     
             # test the templates to make sure they return valid data
