@@ -297,14 +297,6 @@
             <Field id="subscriptions_newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
                 <Label>Topic to subscribe:</Label>
             </Field>
-        	<Field id="subscriptions_qos" type="menu" defaultValue="0" visibleBindingId="section" visibleBindingValue="subscriptions">
-        		<Label>QoS Level:</Label>
-        		<List>
-        			<Option value="0">0</Option>
-        			<Option value="1">1</Option>
-        			<Option value="2">2</Option>
-        		</List>
-        	</Field>
             <Field id="subscriptions_addTopic" type="button" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label/>
                 <Title>Add Topic</Title>

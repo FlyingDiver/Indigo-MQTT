@@ -310,13 +310,23 @@ class Plugin(indigo.PluginBase):
     def addTopic(self, valuesDict, typeId, deviceId):
         topic = valuesDict["subscriptions_newTopic"]
         qos = valuesDict["subscriptions_qos"]
-        s = "{}:{}".format(qos, topic)
+        self.logger.debug(u"addTopic: {}, {} ({})".format(typeId, topic, qos))
+
         topicList = list()
         if 'subscriptions' in valuesDict:
             for t in valuesDict['subscriptions']:
                 topicList.append(t) 
-        if s not in topicList:
-            topicList.append(s)
+
+        if typeId == 'dxlBroker':
+            if topic not in topicList:
+                topicList.append(topic)
+        elif typeId == 'mqttBroker':
+            s = "{}:{}".format(qos, topic)
+            if s not in topicList:
+                topicList.append(s)
+        else:
+            self.logger.warning(u"addTopic: Invalid device type: {} for device {}".format(typeId, deviceId))
+                
         valuesDict['subscriptions'] = topicList
         return valuesDict
 
@@ -469,16 +479,13 @@ class Plugin(indigo.PluginBase):
             # unsubscribe first in case the QoS changed
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
-                    topic = s[2:]
                     if broker:
-                        broker.unsubscribe(topic=topic)
+                        broker.unsubscribe(topic=s)
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
-                    qos = int(s[0:1])
-                    topic = s[2:]
                     if broker:
-                        broker.subscribe(topic=topic, qos=qos)
+                        broker.subscribe(topic=s)
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
         

@@ -19,7 +19,6 @@ class DXLBroker(object):
         def __init__(self, broker):
             EventCallback.__init__(self)
             self.broker = broker
-            self.broker.logger.debug(u"MyEventCallback __init__")
 
         def on_event(self, event):
             self.broker.logger.threaddebug(u"{}: Message {} ({}), received: {}, payload: {}".format(self.broker.device.name, event.message_id, event.message_type, event.destination_topic, event.payload))
@@ -61,9 +60,7 @@ class DXLBroker(object):
 
         subs = self.device.pluginProps.get(u'subscriptions', None)
         if subs:
-            for s in subs:
-                qos = int(s[0:1])
-                topic = s[2:]
+            for topic in subs:
                 self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
                 self.logger.info(u"{}: Subscribing to: {}".format(self.device.name, topic))
                 
@@ -83,7 +80,7 @@ class DXLBroker(object):
         self.dxl_client.send_event(event)
 
 
-    def subscribe(self, topic, qos=0):
+    def subscribe(self, topic):
         self.logger.info(u"{}: Subscribing to: {}".format(self.device.name, topic))
         self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
 

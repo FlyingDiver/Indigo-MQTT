@@ -30,6 +30,9 @@
         			<Option value="1">1</Option>
         			<Option value="2">2</Option>
         		</List>
+            <Field id="qosNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>QoS is ignored for messages to DXL brokers.</Label>
+            </Field>
         	</Field>
         	<Field id="retain" type="menu" defaultValue="0">
         		<Label>Retain:</Label>
@@ -38,6 +41,9 @@
         			<Option value="1">True</Option>
         		</List>
         	</Field>
+            <Field id="retainNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Retain is ignored for messages to DXL brokers.</Label>
+            </Field>
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
                 <Label>Variable and Device State Substitution is enabled for topic and playload fields. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
@@ -70,6 +76,9 @@
         			<Option value="2">2</Option>
         		</List>
         	</Field>
+            <Field id="qosNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>QoS is ignored for messages to DXL brokers.</Label>
+            </Field>
         	<Field id="retain" type="menu" defaultValue="0">
         		<Label>Retain:</Label>
         		<List>
@@ -77,6 +86,9 @@
         			<Option value="1">True</Option>
         		</List>
         	</Field>
+            <Field id="retainNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Retain is ignored for messages to DXL brokers.</Label>
+            </Field>
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
                 <Label>Variable and Device State Substitution is enabled for topic field. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
@@ -99,6 +111,9 @@
         			<Option value="2">2</Option>
         		</List>
         	</Field>
+            <Field id="qosNote" type="label" fontSize="small" fontColor="darkgray">
+                <Label>QoS is ignored for messages to DXL brokers.</Label>
+            </Field>
             <Field id="simpleSeparator2" type="separator"/>
             <Field id="messageNote" type="label" fontSize="small" fontColor="darkgray">
                 <Label>Variable and Device State Substitution is enabled for the topic. Use the format %%v:12345%% for variables and %%d:12345:someStateId%% for device states.</Label>
