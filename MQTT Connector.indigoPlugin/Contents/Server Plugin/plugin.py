@@ -14,7 +14,6 @@ from threading  import Thread
 from Queue import Queue, Empty
 
 from mqtt_broker import MQTTBroker
-from dxl_broker import DXLBroker
 
 kCurDevVersCount = 0        # current version of plugin devices
     
@@ -178,7 +177,7 @@ class Plugin(indigo.PluginBase):
     ########################################
     # Device Management Methods
     ########################################
-      
+
     def deviceStartComm(self, device):
         self.logger.info(u"{}: Starting Device".format(device.name))
 
@@ -199,7 +198,12 @@ class Plugin(indigo.PluginBase):
             self.brokers[device.id] = MQTTBroker(device)
             
         elif device.deviceTypeId == "dxlBroker": 
-            self.brokers[device.id] = DXLBroker(device)
+            try:
+                from dxl_broker import DXLBroker
+            except:
+                self.logger.warning(u"{}: OpenDXL Client library not installed, unable to create DXL Broker device".format(device.name))        
+            else:
+                self.brokers[device.id] = DXLBroker(device)
             
         else:
             self.logger.warning(u"{}: deviceStartComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
@@ -464,18 +468,26 @@ class Plugin(indigo.PluginBase):
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
         
         elif typeId == "dxlBroker": 
+            try:
+                from dxl_broker import DXLBroker
+            except:
+                self.logger.warning(u"OpenDXL Client library not installed, unable to create DXL Broker device")        
+                errorsDict['address'] = u"OpenDXL Client library not installed, unable to create DXL Broker device"
+                errorsDict['port'] = u"OpenDXL Client library not installed, unable to create DXL Broker device"
+                return (False, valuesDict, errorsDict)
+
             broker = self.brokers.get(deviceId, None)
-    
+
             # test the templates to make sure they return valid data
+        
             
-                
             # if the subscription list changes, calc changes and update the broker
 
             if not 'subscriptions' in valuesDict:
                 valuesDict['subscriptions'] = indigo.List()
             if not 'old_subscriptions' in valuesDict:
                 valuesDict['old_subscriptions'] = indigo.List()
-            
+        
             # unsubscribe first in case the QoS changed
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
