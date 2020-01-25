@@ -63,9 +63,12 @@ class Plugin(indigo.PluginBase):
 
         self.logLevel = int(self.pluginPrefs.get(u"logLevel", logging.INFO))
         self.indigo_log_handler.setLevel(self.logLevel)
+        self.loopDelay = float(self.pluginPrefs.get(u"loopDelay", "0.1"))
+
+        self.logger.debug(u"MQTT Connector: logLevel = {}, loopDelay = {}".format(self.logLevel, self.loopDelay))
 
     def startup(self):
-        self.logger.info(u"Starting MQTT")
+        self.logger.info(u"Starting MQTT Connector")
 
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
@@ -75,14 +78,14 @@ class Plugin(indigo.PluginBase):
         indigo.variables.subscribeToChanges()
                             
     def shutdown(self):
-        self.logger.info(u"Shutting down MQTT")
+        self.logger.info(u"Shutting down MQTT Connector")
 
     def runConcurrentThread(self):
         try:
             while True:
                 for broker in self.brokers.values():
                     broker.loop()                
-                self.sleep(0.1)
+                self.sleep(self.loopDelay)
         except self.stopThread:
             pass        
             

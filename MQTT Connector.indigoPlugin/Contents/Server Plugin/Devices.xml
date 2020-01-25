@@ -54,6 +54,11 @@
                 <Label>Use SSL/TLS:</Label>
             </Field>
 
+            <Field  id="loopTimeout" type="textfield" defaultValue="0.5" visibleBindingId="section" visibleBindingValue="connect">
+                <Label>Socket read timeout in device loop:</Label>
+            </Field>
+
+
             <!--  This section for managing topic subscriptions for this broker  -->
 
             <Field id="subscriptions_newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >

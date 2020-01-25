@@ -13,6 +13,10 @@
 		</List>
 	</Field>			
 
+	<Field type="textfield" id="loopDelay" defaultValue="0.1">
+		<Label>Sleep delay in main loop:</Label>
+	</Field>
+
 	<Field type="checkbox" id="showDebugInfo">
 		<Label>Enable library debugging:</Label>
 		<Description>(not recommended, requires plugin restart)</Description>

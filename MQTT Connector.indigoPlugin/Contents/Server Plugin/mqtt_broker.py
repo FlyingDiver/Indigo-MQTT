@@ -26,7 +26,9 @@ class MQTTBroker(object):
 
         self.useTLS = device.pluginProps.get(u'useTLS', False)
 
-        self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}".format(device.name, self.address, self.port, self.protocol, self.transport))
+        self.loopTimeout = float(device.pluginProps.get(u'loopTimeout', '0.5'))
+
+        self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}, timeout = {}".format(device.name, self.address, self.port, self.protocol, self.transport, self.loopTimeout))
         
         self.device.updateStateOnServer(key="status", value="Not Connected")
         self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
