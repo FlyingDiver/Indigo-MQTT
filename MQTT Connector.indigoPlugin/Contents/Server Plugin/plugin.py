@@ -14,6 +14,7 @@ from threading  import Thread
 from Queue import Queue, Empty
 
 from mqtt_broker import MQTTBroker
+from aiot_broker import AIoTBroker
 
 kCurDevVersCount = 0        # current version of plugin devices
     
@@ -92,7 +93,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDevice, newDevice):
         indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
-        if newDevice.deviceTypeId in ["mqttBroker", "dxlBroker"]:          # can't do updates on broker device, leads to infinite loop
+        if newDevice.deviceTypeId in ["mqttBroker", "dxlBroker", "aIoTBroker"]:          # can't do updates on broker device, leads to infinite loop
             return      
 
         for brokerID in self.brokers:
@@ -200,6 +201,9 @@ class Plugin(indigo.PluginBase):
         if device.deviceTypeId == "mqttBroker": 
             self.brokers[device.id] = MQTTBroker(device)
             
+        elif device.deviceTypeId == "aIoTBroker": 
+            self.brokers[device.id] = AIoTBroker(device)
+            
         elif device.deviceTypeId == "dxlBroker": 
             try:
                 from dxl_broker import DXLBroker
@@ -214,7 +218,7 @@ class Plugin(indigo.PluginBase):
     
     def deviceStopComm(self, device):
         self.logger.info(u"{}: Stopping Device".format(device.name))
-        if device.deviceTypeId in ["mqttBroker", "dxlBroker"]:
+        if device.deviceTypeId in ["mqttBroker", "dxlBroker", "aIoTBroker"]:
             del self.brokers[device.id]
             device.updateStateOnServer(key="status", value="Stopped")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
@@ -237,6 +241,24 @@ class Plugin(indigo.PluginBase):
             if origDev.pluginProps.get('password', None) != newDev.pluginProps.get('password', None):
                 return True           
             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
+                return True           
+
+            # a bit of a hack to make sure name changes get pushed down immediately
+            try:                
+                self.brokers[newDev.id].refreshFromServer()
+            except:
+                pass
+                
+        elif newDev.deviceTypeId == "AIoTBroker":
+            if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
+                return True           
+            if origDev.pluginProps.get('port', None) != newDev.pluginProps.get('port', None):
+                return True           
+            if origDev.pluginProps.get('ca_bundle', None) != newDev.pluginProps.get('ca_bundle', None):
+                return True           
+            if origDev.pluginProps.get('cert_file', None) != newDev.pluginProps.get('cert_file', None):
+                return True           
+            if origDev.pluginProps.get('private_key', None) != newDev.pluginProps.get('private_key', None):
                 return True           
 
             # a bit of a hack to make sure name changes get pushed down immediately
@@ -327,7 +349,13 @@ class Plugin(indigo.PluginBase):
         if typeId == 'dxlBroker':
             if topic not in topicList:
                 topicList.append(topic)
+
         elif typeId == 'mqttBroker':
+            s = "{}:{}".format(qos, topic)
+            if s not in topicList:
+                topicList.append(s)
+                
+        elif typeId == 'aIoTBroker':
             s = "{}:{}".format(qos, topic)
             if s not in topicList:
                 topicList.append(s)
@@ -504,6 +532,35 @@ class Plugin(indigo.PluginBase):
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
         
+        elif typeId == "aIoTBroker": 
+            broker = self.brokers.get(deviceId, None)
+    
+            # test the templates to make sure they return valid data
+            
+                
+            # if the subscription list changes, calc changes and update the broker
+
+            if not 'subscriptions' in valuesDict:
+                valuesDict['subscriptions'] = indigo.List()
+            if not 'old_subscriptions' in valuesDict:
+                valuesDict['old_subscriptions'] = indigo.List()
+            
+            # unsubscribe first in case the QoS changed
+            for s in valuesDict['old_subscriptions']:
+                if s not in valuesDict['subscriptions']:
+                    topic = s[2:]
+                    if broker:
+                        broker.unsubscribe(topic=topic)
+
+            for s in valuesDict['subscriptions']:
+                if s not in valuesDict['old_subscriptions']:
+                    qos = int(s[0:1])
+                    topic = s[2:]
+                    if broker:
+                        broker.subscribe(topic=topic, qos=qos)
+
+            valuesDict['old_subscriptions'] = valuesDict['subscriptions']
+        
         else:
             self.logger.warning(u"validateDeviceConfigUi: Invalid device type: {}".format(typeId))
 
@@ -574,7 +631,7 @@ class Plugin(indigo.PluginBase):
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
-        retain = int(pluginAction.props["retain"])
+        retain = bool(pluginAction.props["retain"])
         self.logger.threaddebug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 

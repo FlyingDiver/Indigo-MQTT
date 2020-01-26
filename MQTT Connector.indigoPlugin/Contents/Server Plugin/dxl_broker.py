@@ -32,7 +32,7 @@ class DXLBroker(object):
 
 
     def __init__(self, device):
-        self.logger = logging.getLogger("Plugin.Broker")
+        self.logger = logging.getLogger("Plugin.DXLBroker")
         self.device = device
     
         address = device.pluginProps.get(u'address', "")

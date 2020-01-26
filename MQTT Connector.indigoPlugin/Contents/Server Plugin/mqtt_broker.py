@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 class MQTTBroker(object):
 
     def __init__(self, device):
-        self.logger = logging.getLogger("Plugin.Broker")
+        self.logger = logging.getLogger("Plugin.MQTTBroker")
         self.device = device
         self.reconnectTime = None
     
