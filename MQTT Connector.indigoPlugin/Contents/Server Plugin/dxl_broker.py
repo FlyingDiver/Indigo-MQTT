@@ -37,9 +37,9 @@ class DXLBroker(object):
     
         address = device.pluginProps.get(u'address', "")
         port = device.pluginProps.get(u'port', "")
-        ca_bundle = device.pluginProps.get(u'ca_bundle', "")
-        cert_file = device.pluginProps.get(u'cert_file', "")
-        private_key = device.pluginProps.get(u'private_key', "")
+        ca_bundle = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'ca_bundle', "")
+        cert_file = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'cert_file', "")
+        private_key = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'private_key', "")
         
         self.logger.debug(u"{}: Broker __init__ address = {}, ca_bundle = {}, cert_file = {}, private_key = {}".format(device.name, address, ca_bundle, cert_file, private_key))
         

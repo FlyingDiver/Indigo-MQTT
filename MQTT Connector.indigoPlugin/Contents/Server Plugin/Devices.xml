@@ -293,7 +293,7 @@
                 <Label>Client private key file:</Label>
             </Field>
             <Field id="brokerConnectLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="connect">
-                <Label>Files should be full path names.</Label>
+                <Label>Files must be located in the base Indigo directory.</Label>
             </Field>
 
 
@@ -523,7 +523,7 @@
                 <Label>Certificate file:</Label>
             </Field>
             <Field id="brokerConnectLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="connect">
-                <Label>Files should be full path names.</Label>
+                <Label>Files must be located in the base Indigo directory.</Label>
             </Field>
 
 
