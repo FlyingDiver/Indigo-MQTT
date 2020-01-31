@@ -314,9 +314,9 @@ class Plugin(indigo.PluginBase):
                         i += 1
                         p = match.split(": ")
                         if p[0] in ["Any", "Skip"]:
-                        if not topic_part:      # nothing there to skip
-                            is_match = False
-                            break
+                            if not topic_part:      # nothing there to skip
+                                is_match = False
+                                break
                         elif p[0] == "End":
                             if topic_part:      # more parts left
                                 is_match = False
