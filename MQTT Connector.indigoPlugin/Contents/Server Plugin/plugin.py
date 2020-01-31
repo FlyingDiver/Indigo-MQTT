@@ -310,17 +310,21 @@ class Plugin(indigo.PluginBase):
                         try:                          
                             topic_part = topic_parts[i]
                         except:
-                            topic_part = ""
+                            topic_part = None
                         i += 1
                         p = match.split(": ")
                         if p[0] in ["Any", "Skip"]:
-                            continue
-                        elif p[0] == "Match":
-                            if topic_part == p[1]:
-                                continue
-                            else:
+                        if not topic_part:      # nothing there to skip
+                            is_match = False
+                            break
+                        elif p[0] == "End":
+                            if topic_part:      # more parts left
                                 is_match = False
-                                break      
+                            break                                
+                        elif p[0] == "Match":
+                            if topic_part != p[1]:
+                                is_match = False
+                                break    
                         
                     # here after all items in match_list have been checked, or a match failed
                     if is_match:        

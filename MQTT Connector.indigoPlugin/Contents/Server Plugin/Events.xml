@@ -41,6 +41,7 @@
         		<List>
         			<Option value="Match">Match</Option>
         			<Option value="Any">Any (wildcard)</Option>
+        			<Option value="End">Topic Complete</Option>
         		</List>
         	</Field>
             <Field id="match_string" type="textfield" defaultValue="">
