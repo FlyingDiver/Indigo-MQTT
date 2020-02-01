@@ -16,4 +16,8 @@
             </Field>
         </ConfigUI>
     </MenuItem>
+    <MenuItem id="logAggregators">
+        <CallbackMethod>logAggregators</CallbackMethod>
+        <Name>Print Aggregator Data to Log</Name>
+    </MenuItem>
 </MenuItems>

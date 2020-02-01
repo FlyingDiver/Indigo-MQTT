@@ -22,18 +22,12 @@ class DXLBroker(object):
 
         def on_event(self, event):
             self.broker.logger.threaddebug(u"{}: Message {} ({}), received: {}, payload: {}".format(self.broker.device.name, event.message_id, event.message_type, event.destination_topic, event.payload))
-
-            stateList = [
-                { 'key':'last_topic',   'value': event.destination_topic   },
-                { 'key':'last_payload', 'value': event.payload }
-            ]
-            self.broker.device.updateStatesOnServer(stateList)
-            indigo.activePlugin.triggerCheck(self.broker.device)
+            indigo.activePlugin.processReceivedMessage(self.broker.device.id, event.destination_topic, event.payload)
 
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.DXLBroker")
-        self.device = device
+        self.deviceID = device.id
     
         address = device.pluginProps.get(u'address', "")
         port = device.pluginProps.get(u'port', "")
@@ -43,8 +37,8 @@ class DXLBroker(object):
         
         self.logger.debug(u"{}: Broker __init__ address = {}, ca_bundle = {}, cert_file = {}, private_key = {}".format(device.name, address, ca_bundle, cert_file, private_key))
         
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         # Create the client configuration
         broker = Broker.parse("ssl://{}:{}".format(address, port))
@@ -55,25 +49,23 @@ class DXLBroker(object):
 
         # Connect to the fabric
         self.dxl_client.connect()    
-        self.device.updateStateOnServer(key="status", value="Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)            
+        device.updateStateOnServer(key="status", value="Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)            
 
-        subs = self.device.pluginProps.get(u'subscriptions', None)
+        subs = device.pluginProps.get(u'subscriptions', None)
         if subs:
             for topic in subs:
                 self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
-                self.logger.info(u"{}: Subscribing to: {}".format(self.device.name, topic))
+                self.logger.info(u"{}: Subscribing to: {}".format(device.name, topic))
                 
             
     def __del__(self):
+        device = indigo.devices[self.deviceID]
         self.dxl_client.disconnect()        
         self.dxl_client.destroy()        
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
       
-    def loop(self):
-        pass
-            
     def publish(self, topic, payload=None, qos=0, retain=False):
         event = Event(topic)
         event.payload = payload
@@ -81,13 +73,11 @@ class DXLBroker(object):
 
 
     def subscribe(self, topic):
-        self.logger.info(u"{}: Subscribing to: {}".format(self.device.name, topic))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Subscribing to: {}".format(device.name, topic))
         self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
 
     def unsubscribe(self, topic):
-        self.logger.info(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Unsubscribing from: {}".format(device.name, topic))
         self.dxl_client.unsubscribe(topic)
-
-    def refreshFromServer(self):
-        self.device.refreshFromServer()
-

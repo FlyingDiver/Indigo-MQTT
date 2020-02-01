@@ -13,7 +13,7 @@ class MQTTBroker(object):
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.MQTTBroker")
-        self.device = device
+        self.deviceID = device.id
         self.reconnectTime = None
     
         self.address = device.pluginProps.get(u'address', "")
@@ -26,17 +26,15 @@ class MQTTBroker(object):
 
         self.useTLS = device.pluginProps.get(u'useTLS', False)
 
-        self.loopTimeout = float(device.pluginProps.get(u'loopTimeout', '0.5'))
-
-        self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}, timeout = {}".format(device.name, self.address, self.port, self.protocol, self.transport, self.loopTimeout))
+        self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}".format(device.name, self.address, self.port, self.protocol, self.transport))
         
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         self.client = mqtt.Client(client_id="indigo-mqtt-{}".format(device.id), clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
 
         if bool(indigo.activePlugin.pluginPrefs[u"showDebugInfo"]):
-            self.logger.debug(u"{}: Enabling library level debugging".format(self.device.name))    
+            self.logger.debug(u"{}: Enabling library level debugging".format(device.name))    
             self.client.enable_logger(self.logger)
 
         if self.username:
@@ -55,92 +53,75 @@ class MQTTBroker(object):
         try:
             self.client.connect(self.address, self.port, 60)
         except:
-            self.device.updateStateOnServer(key="status", value="Connection Failed")
-            self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+            device.updateStateOnServer(key="status", value="Connection Failed")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
             self.connected = False
-            self.reconnectDelay = 5.0
-            self.reconnectTime = time.time() + self.reconnectDelay
         else:
             self.connected = True
+            self.client.loop_start()
             
     def __del__(self):
+        self.client.loop_stop()
         self.client.disconnect()
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
-      
-    def loop(self):
-        if self.connected:
-            self.client.loop(timeout=0.5)
-        elif self.reconnectTime and (time.time() > self.reconnectTime):
-            self.logger.debug(u"{}: Attempting reconnect".format(self.device.name))
-            try:
-                self.client.connect(self.address, self.port, 60)
-            except:
-                if self.reconnectDelay < 300.0:
-                    self.reconnectDelay = self.reconnectDelay * 2.0
-                self.reconnectTime = time.time() + self.reconnectDelay
-            else:
-                self.connected = True
-            
+        device = indigo.devices[self.deviceID]
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
+                  
     def publish(self, topic, payload=None, qos=0, retain=False):
         self.client.publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, qos=0):
-        self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Subscribing to: {} ({})".format(device.name, topic, qos))
         self.client.subscribe(topic, qos)
 
     def unsubscribe(self, topic):
-        self.logger.info(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Unsubscribing from: {}".format(device.name, topic))
         self.client.unsubscribe(topic)
 
-    def refreshFromServer(self):
-        self.device.refreshFromServer()
-        
 
     ################################################################################
     # Callbacks
     ################################################################################
 
     def on_connect(self, client, userdata, flags, rc):
-        self.logger.debug(u"{}: Connected with result code {}".format(self.device.name, rc))
-        self.device.refreshFromServer()
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Connected with result code {}".format(device.name, rc))
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        subs = self.device.pluginProps.get(u'subscriptions', None)
+        subs = device.pluginProps.get(u'subscriptions', None)
         if subs:
             for s in subs:
                 qos = int(s[0:1])
                 topic = s[2:]
                 client.subscribe(topic, qos)
-                self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
+                self.logger.info(u"{}: Subscribing to: {} ({})".format(device.name, topic, qos))
             
-        self.device.updateStateOnServer(key="status", value="Connected {}".format(rc))
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
+        device.updateStateOnServer(key="status", value="Connected {}".format(rc))
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
     def on_disconnect(self, client, userdata, rc):
-        self.logger.error(u"{}: Disconnected with result code {}".format(self.device.name, rc))
-        self.device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+        device = indigo.devices[self.deviceID]
+        self.logger.error(u"{}: Disconnected with result code {}".format(device.name, rc))
+        device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
         self.connected = False
-        self.reconnectDelay = 1.0
-        self.reconnectTime = time.time() + self.reconnectDelay
 
     def on_message(self, client, userdata, msg):
-        self.logger.threaddebug(u"{}: Message received: {}, payload: {}".format(self.device.name, msg.topic, msg.payload))
-
-        stateList = [
-            { 'key':'last_topic',   'value': msg.topic   },
-            { 'key':'last_payload', 'value': msg.payload }
-        ]
-        self.device.updateStatesOnServer(stateList)
-        indigo.activePlugin.triggerCheck(self.device)
+        device = indigo.devices[self.deviceID]
+        self.logger.threaddebug(u"{}: Message received: {}, payload: {}".format(device.name, msg.topic, msg.payload))
+        indigo.activePlugin.processReceivedMessage(self.deviceID, msg.topic, msg.payload)
 
     def on_publish(self, client, userdata, mid):
-        self.logger.threaddebug(u"{}: Message published: {}".format(self.device.name, mid))
+        device = indigo.devices[self.deviceID]
+        self.logger.threaddebug(u"{}: Message published: {}".format(device.name, mid))
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
-        self.logger.threaddebug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, granted_qos))
+        device = indigo.devices[self.deviceID]
+        self.logger.threaddebug(u"{}: Subscribe complete: {}, {}".format(device.name, mid, granted_qos))
 
     def on_unsubscribe(self, client, userdata, mid):
-        self.logger.threaddebug(u"{}: Unsubscribe complete: {}".format(self.device.name, mid))
+        device = indigo.devices[self.deviceID]
+        self.logger.threaddebug(u"{}: Unsubscribe complete: {}".format(device.name, mid))
 

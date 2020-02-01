@@ -56,7 +56,7 @@
             <Field id="match_label" type="label" fontColor="darkgray">
                 <Label>Topic strings for matching.</Label>
             </Field>
-           <Field id="match_items" type="list" rows="5">
+           <Field id="match_items" type="list" rows="8">
                 <Label/>
                 <List class="self" method="matchList" dynamicReload="true"/>
             </Field>

@@ -20,7 +20,7 @@ class AIoTBroker(object):
         streamHandler.setFormatter(formatter)
         self.logger.addHandler(streamHandler)
         
-        self.device = device
+        self.deviceID = device.id
     
         address = device.pluginProps.get(u'address', "")
         port = int(device.pluginProps.get(u'port', ""))
@@ -30,8 +30,8 @@ class AIoTBroker(object):
 
         self.logger.debug(u"{}: Broker __init__ address = {}:{}, ca_bundle = {}, cert_file = {}, private_key = {}".format(device.name, address, port, ca_bundle, cert_file, private_key))
         
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         try: 
             self.aIoTClient = AWSIoTMQTTClient("indigo-mqtt-{}".format(device.id), useWebsocket=False)
@@ -44,7 +44,7 @@ class AIoTBroker(object):
             self.aIoTClient.configureConnectDisconnectTimeout(10)  # 10 sec
             self.aIoTClient.configureMQTTOperationTimeout(5)  # 5 sec
 
-#            self.aIoTClient.disableMetricsCollection()
+            self.aIoTClient.disableMetricsCollection()
 
             self.aIoTClient.onOnline  = self.onOnline
             self.aIoTClient.onOffline = self.onOffline
@@ -54,44 +54,42 @@ class AIoTBroker(object):
             self.aIoTClient.connectAsync(ackCallback=self.onConnect)
 
         except:
-            self.logger.exception(u"{}: Exception while creating Broker object".format(self.device.name))
+            self.logger.exception(u"{}: Exception while creating Broker object".format(device.name))
                   
             
     def __del__(self):
+        device = indigo.devices[self.deviceID]
         self.aIoTClient.disconnect()        
-        self.device.updateStateOnServer(key="status", value="Not Connected")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
+        device.updateStateOnServer(key="status", value="Not Connected")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
       
-    def loop(self):
-        pass                        
-
     def publish(self, topic, payload=None, qos=0, retain=False):
-        self.logger.debug(u"{}: Publishing to: {} ({}), payload = {}".format(self.device.name, topic, qos, payload))
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Publishing to: {} ({}), payload = {}".format(device.name, topic, qos, payload))
         self.aIoTClient.publishAsync(str(topic), str(payload), qos, ackCallback=self.onPublish)
 
     def subscribe(self, topic, qos=0):
-        self.logger.info(u"{}: Subscribing to: {} ({})".format(self.device.name, topic, qos))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Subscribing to: {} ({})".format(device.name, topic, qos))
         self.aIoTClient.subscribeAsync(str(topic), int(qos), ackCallback=self.onSubscribe)
 
     def unsubscribe(self, topic):
-        self.logger.info(u"{}: Unsubscribing from: {}".format(self.device.name, topic))
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Unsubscribing from: {}".format(device.name, topic))
         self.aIoTClient.unsubscribeAsync(str(topic), ackCallback=self.onUnsubscribe)
-
-    def refreshFromServer(self):
-        self.device.refreshFromServer()
 
     ################################################################################
     # Callbacks
     ################################################################################
 
     def onConnect(self, mid, rc):
-        self.logger.debug(u"{}: Client Connected, mid = {}, rc = {}".format(self.device.name, mid, rc))
-        self.device.refreshFromServer()
-        self.device.updateStateOnServer(key="status", value="OnLine")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Client Connected, mid = {}, rc = {}".format(device.name, mid, rc))
+        device.updateStateOnServer(key="status", value="OnLine")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
         # Subscribing in onConnect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        subs = self.device.pluginProps.get(u'subscriptions', None)
+        subs = device.pluginProps.get(u'subscriptions', None)
         if subs:
             for s in subs:
                 qos = int(s[0:1])
@@ -99,33 +97,33 @@ class AIoTBroker(object):
                 self.subscribe(topic, qos)
             
     def onOnline(self):
-        self.logger.debug(u"{}: Client is Online".format(self.device.name))
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Client is Online".format(device.name))
 
     def onOffline(self):
-        self.logger.debug(u"{}: Client is OffLine".format(self.device.name))
-        self.device.updateStateOnServer(key="status", value="OffLine")
-        self.device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Client is OffLine".format(device.name))
+        device.updateStateOnServer(key="status", value="OffLine")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def onTopicMessage(self, client, userdata, msg):
-        self.logger.debug(u"{}: onTopicMessage - client: {}, userdata: {} message: '{}', payload: {}".format(self.device.name, client, userdata, msg.topic, msg.payload))
-
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: onTopicMessage - client: {}, userdata: {} message: '{}', payload: {}".format(device.name, client, userdata, msg.topic, msg.payload))
 
     def onMessage(self, msg):
-        self.logger.debug(u"{}: Message received: {}, payload: {}".format(self.device.name, msg.topic, msg.payload))
-
-        stateList = [
-            { 'key':'last_topic',   'value': msg.topic   },
-            { 'key':'last_payload', 'value': msg.payload }
-        ]
-        self.device.updateStatesOnServer(stateList)
-        indigo.activePlugin.triggerCheck(self.device)
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Message received: {}, payload: {}".format(device.name, msg.topic, msg.payload))
+        indigo.activePlugin.processReceivedMessage(device.id, msg.topic, msg.payload)
 
     def onPublish(self, mid):
-        self.logger.debug(u"{}: Message published: {}".format(self.device.name, mid))
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Message published: {}".format(device.name, mid))
 
     def onSubscribe(self, mid, data):
-        self.logger.debug(u"{}: Subscribe complete: {}, {}".format(self.device.name, mid, data))
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Subscribe complete: {}, {}".format(device.name, mid, data))
 
     def onUnsubscribe(self, mid):
-        self.logger.debug(u"{}: Unsubscribe complete: {}".format(self.device.name, mid))
+        device = indigo.devices[self.deviceID]
+        self.logger.debug(u"{}: Unsubscribe complete: {}".format(device.name, mid))
 
