@@ -16,6 +16,37 @@
             </Field>
         </ConfigUI>
     </MenuItem>
+    <MenuItem id="manageAggregators">
+        <Name>Manage Aggregators...</Name>
+        <ButtonTitle>Done</ButtonTitle>
+       <ConfigUI>
+            <Field id="brokerID" type="menu">
+                <Label>MQTT Broker:</Label>
+                <List class="self" filter="" method="getBrokerDevices" dynamicReload="true"/>
+            </Field>
+            <Field id="topic_base" type="textfield">
+                <Label>Topic Base:</Label>
+         	</Field>
+            <Field id="addAggregator" type="button">
+                <Label/>
+                <Title>Add/Update Aggregator</Title>
+                <CallbackMethod>addAggregator</CallbackMethod>
+            </Field>
+            <Field id="sep1" type="separator"/>
+            <Field id="publishedLabel" type="label" fontColor="darkgray">
+                <Label>This is the list of Aggregator Devices.</Label>
+            </Field>
+            <Field id="aggregatorList" type="list" rows="15">
+                <Label>Aggregators:</Label>
+                <List class="self" method="aggregatorList" dynamicReload="true"/>
+            </Field>
+            <Field id="deleteAggregator" type="button">
+                <Label/>
+                <Title>Delete Aggregator(s)</Title>
+                <CallbackMethod>deleteAggregator</CallbackMethod>
+            </Field>
+        </ConfigUI>
+    </MenuItem>
     <MenuItem id="logAggregators">
         <CallbackMethod>logAggregators</CallbackMethod>
         <Name>Print Aggregator Data to Log</Name>

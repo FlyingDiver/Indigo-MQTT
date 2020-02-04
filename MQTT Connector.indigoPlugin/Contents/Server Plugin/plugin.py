@@ -107,8 +107,13 @@ class Plugin(indigo.PluginBase):
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
         self.queueDict = {}
-        self.aggregators = {}
         
+        savedList = indigo.activePlugin.pluginPrefs.get(u"aggregators", None)
+        if savedList:
+            self.aggregators = json.loads(savedList)
+        else:
+            self.aggregators = {}        
+
         indigo.devices.subscribeToChanges()
         indigo.variables.subscribeToChanges()
                             
@@ -248,8 +253,6 @@ class Plugin(indigo.PluginBase):
             else:
                 self.brokers[device.id] = DXLBroker(device)
             
-        elif device.deviceTypeId == "aggregator": 
-            self.aggregators[device.id] = {'topic_base' : device.pluginProps['topic_base'], 'brokerID' : device.pluginProps['brokerID'], 'payload' : {} }
         else:
             self.logger.warning(u"{}: deviceStartComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
         
@@ -260,8 +263,6 @@ class Plugin(indigo.PluginBase):
             del self.brokers[device.id]
             device.updateStateOnServer(key="status", value="Stopped")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
-        elif device.deviceTypeId == "aggregator": 
-            del self.aggregators[device.id]
         else:
             self.logger.warning(u"{}: deviceStopComm: Invalid device type: {}".format(device.name, device.deviceTypeId))
         
@@ -351,7 +352,7 @@ class Plugin(indigo.PluginBase):
         
         for aggID in self.aggregators:
             if devID != int(self.aggregators[aggID]['brokerID']):   # skip if wrong broker
-                self.logger.debug(u"Wrong broker, devID {} != brokerID {}".format(device.name, devID, self.aggregators[aggID]['brokerID']))
+                self.logger.threaddebug(u"{}: Wrong broker, devID {} != brokerID {}".format(device.name, devID, self.aggregators[aggID]['brokerID']))
                 continue
             
             topic_base = self.aggregators[aggID]['topic_base']
@@ -928,13 +929,49 @@ class Plugin(indigo.PluginBase):
             retList.append((device.id, device.name))
         retList.sort(key=lambda tup: tup[1])
         return retList
+    
+    ########################################
+    # This is the method that's called by the Add Aggregator button in the config dialog.
+    ########################################
+    def addAggregator(self, valuesDict, typeId=None, devId=None):
+        
+        brokerID = valuesDict["brokerID"]
+        topic_base = valuesDict["topic_base"]
+
+        aggID = "{}:{}".format(brokerID, topic_base)
+        aggItem = {"brokerID" : brokerID, "topic_base" : topic_base, "payload" : {}}
+        self.logger.debug(u"Adding aggItem {}: {}".format(aggID, aggItem))
+        self.aggregators[aggID] = aggItem
+        self.logAggregators()
+        
+        indigo.activePlugin.pluginPrefs[u"aggregators"] = json.dumps(self.aggregators)
 
     ########################################
-    
+    # This is the method that's called by the Delete Device button
+    ########################################
+    def deleteAggregator(self, valuesDict, typeId=None, devId=None):
+        
+        for item in valuesDict["aggregatorList"]:
+            self.logger.info(u"deleting device {}".format(item))
+            del self.aggregators[item]
+
+        self.logAggregators()
+        indigo.activePlugin.pluginPrefs[u"aggregators"] = json.dumps(self.aggregators)
+        
+    def aggregatorList(self, filter="", valuesDict=None, typeId="", targetId=0):
+        returnList = list()
+        for aggID in self.aggregators:
+            returnList.append((aggID, aggID))
+        return sorted(returnList, key= lambda item: item[1])
+            
+    ########################################
+
     def logAggregators(self):
         if len(self.aggregators) == 0:
             self.logger.info(u"No Aggregators defined")
             return
             
-        for item in self.aggregators.values():
-             self.logger.info("Topic Base: {}, Payload:\n{}\n".format(item["topic_base"], json.dumps(item["payload"], sort_keys=True, indent=4, separators=(',', ': '))))
+        fstring = u"{:^35}{:^35}{}"
+        self.logger.info(fstring.format("Aggregator ID", "Topic Base", "Payload"))
+        for aggID, aggItem in self.aggregators.iteritems():
+             self.logger.info(fstring.format(aggID, aggItem["topic_base"], json.dumps(aggItem.get("payload", None), sort_keys=True, indent=4, separators=(',', ': '))))

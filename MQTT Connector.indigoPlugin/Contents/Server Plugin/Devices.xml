@@ -715,19 +715,4 @@
         </States>
         <UiDisplayStateId>status</UiDisplayStateId>
     </Device>       
-
-    <Device type="custom" id="aggregator">
-        <Name>Topic Aggregator</Name>
-        <ConfigUI>             
-            <Field id="brokerID" type="menu">
-                <Label>MQTT Broker:</Label>
-                <List class="self" filter="" method="getBrokerDevices" dynamicReload="true"/>
-            </Field>
-
-            <Field id="topic_base" type="textfield">
-                <Label>Topic Base:</Label>
-         	</Field>
-        </ConfigUI> 
-    </Device>       
-
 </Devices>
