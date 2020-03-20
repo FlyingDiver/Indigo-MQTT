@@ -154,8 +154,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue="{'name': '{{name}}', 'deviceId':'{{deviceId}}','model': '{{model}}', 'address': '{{address}}', 'states': 
-                    { {{#states}} '{{name}}': '{{value}}', {{/states}} } }">
+                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
                 <Label>Payload:
                 
                 
@@ -197,7 +197,7 @@
                 </Label>
             </Field>
             <Field id="variable_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="variable_template"
-                defaultValue="{ 'name': {{name}}, 'variableId':{{variableId}}, 'value': {{value}} }">
+                defaultValue='{ "name": {{name}}, "variableId":{{variableId}}, "value": {{value}} }'>
                 <Label>Payload:
                 
                 
@@ -384,8 +384,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue="{'name': '{{name}}', 'deviceId':'{{deviceId}}','model': '{{model}}', 'address': '{{address}}', 'states': 
-                    { {{#states}} '{{name}}': '{{value}}', {{/states}} } }">
+                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
                 <Label>Payload:
                 
                 
@@ -427,7 +427,7 @@
                 </Label>
             </Field>
             <Field id="variable_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="variable_template"
-                defaultValue="{ 'name': {{name}}, 'variableId':{{variableId}}, 'value': {{value}} }">
+                defaultValue='{ "name": {{name}}, "variableId":{{variableId}}, "value": {{value}} }'>
                 <Label>Payload:
                 
                 
@@ -621,8 +621,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue="{'name': '{{name}}', 'deviceId':'{{deviceId}}','model': '{{model}}', 'address': '{{address}}', 'states': 
-                    { {{#states}} '{{name}}': '{{value}}', {{/states}} } }">
+                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
                 <Label>Payload:
                 
                 
@@ -664,7 +664,7 @@
                 </Label>
             </Field>
             <Field id="variable_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="variable_template"
-                defaultValue="{ 'name': {{name}}, 'variableId':{{variableId}}, 'value': {{value}} }">
+                defaultValue='{ "name": {{name}}, "variableId":{{variableId}}, "value": {{value}} }'>
                 <Label>Payload:
                 
                 

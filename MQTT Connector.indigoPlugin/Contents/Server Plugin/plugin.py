@@ -111,7 +111,7 @@ class Plugin(indigo.PluginBase):
 #         try:
 #             while True:
 #               
-#         except self.stopThread:
+#         except self.StopThread:
 #             pass        
             
 
@@ -137,17 +137,19 @@ class Plugin(indigo.PluginBase):
                 
             # if we got here, then this device should be published
             
-            self.logger.debug(u"{}: deviceUpdated: publishing device".format(newDevice.name))
             dev_data = makeDevForJSON(newDevice)
             topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
             if not topic_template:
+                self.logger.debug(u"{}: deviceUpdated: unable to publish device, no topic template".format(newDevice.name))
                 return
             topic = pystache.render(topic_template, dev_data)
             payload_template = brokerDevice.pluginProps.get("device_template_payload", None)
             if not payload_template:
+                self.logger.debug(u"{}: deviceUpdated: unable to publish device, no payload template".format(newDevice.name))
                 return
             payload = pystache.render(payload_template, dev_data)
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
+            self.logger.debug(u"{}: deviceUpdated: publishing device - payload = {}".format(newDevice.name, payload))
 
             qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
             retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
