@@ -770,13 +770,15 @@ class Plugin(indigo.PluginBase):
         broker.subscribe(topic=topic, qos=qos)
         self.logger.debug(u"{}: addSubscription {} ({})".format(device.name, topic, qos))
         
+        s = "{}:{}".format(qos, topic)
+
         updatedPluginProps = device.pluginProps
         if not 'subscriptions' in updatedPluginProps:
            subList = []
         else:
            subList = updatedPluginProps[u'subscriptions']
-        if not topic in subList:
-            subList.append(topic)
+        if not s in subList:
+            subList.append(s)
         updatedPluginProps[u'subscriptions'] = subList
         self.logger.debug(u"{}: subscriptions after update :\n{}".format(device.name, updatedPluginProps[u'subscriptions']))
         device.replacePluginPropsOnServer(updatedPluginProps)
@@ -792,20 +794,17 @@ class Plugin(indigo.PluginBase):
             self.logger.error(u"{}: delSubscription error, subList is empty".format(device.name))
             return
         subList = updatedPluginProps[u'subscriptions']
-        if not topic in subList:
-            self.logger.debug(u"{}: Topic {} not in subList.".format(device.name, topics))
-            return
-        subList.remove(topic)
-        updatedPluginProps[u'subscriptions'] = subList
-        self.logger.debug(u"{}: subscriptions after update :\n{}".format(device.name, updatedPluginProps[u'subscriptions']))
-        device.replacePluginPropsOnServer(updatedPluginProps)
+        for sub in subList:
+            if topic in sub:
+                subList.remove(sub)      
+                updatedPluginProps[u'subscriptions'] = subList
+                self.logger.debug(u"{}: subscriptions after update :\n{}".format(device.name, updatedPluginProps[u'subscriptions']))
+                device.replacePluginPropsOnServer(updatedPluginProps)
+                return
+                
+        self.logger.debug(u"{}: Topic {} not in subList.".format(device.name, topic))
+        return
 
-    def clearAllSubscriptions(self, brokerID):
-        broker = self.brokers[brokerID]
-        device = indigo.devices[int(brokerID)]
-        for topic in device.pluginProps[u'subscriptions']:
-            self.delSubscription(brokerID, topic)
-    
 
     ########################################################################
     # This method is called to generate a list of plugin identifiers / names
