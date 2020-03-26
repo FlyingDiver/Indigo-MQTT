@@ -14,6 +14,7 @@
         		<List>
         			<Option value="connect">Connection Info</Option>
         			<Option value="subscriptions">Topic Subscriptions</Option>
+        			<Option value="control">Device/Variable Control</Option>
         			<Option value="devices">Published Devices</Option>
         			<Option value="device_template">Device Publishing Template</Option>
         			<Option value="variables">Published Variables</Option>
@@ -86,6 +87,28 @@
                 <CallbackMethod>deleteSubscriptions</CallbackMethod>
             </Field>
 
+            <!--  This section for managing device/variable command for this broker  -->
+
+            <Field id="control_section_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="control">
+                <Label>See the Wiki for how to use this section. </Label>
+            </Field>
+            <Field id="control_section_separator1" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_device_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Device commands:</Label>
+            </Field>
+            <Field id="control_device_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/devices/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
+            </Field>
+            <Field id="control_section_separator2" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_variable_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Variable commands:</Label>
+            </Field>
+            <Field id="control_variable_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/variables/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
+            </Field>
+
             <!--  This section for managing device publishing to this broker  -->
 
             <Field id="devices_doExcludes" type="checkbox"  visibleBindingId="section" visibleBindingValue="devices" alwaysUseInDialogHeightCalc="true">
@@ -142,7 +165,7 @@
                 <CallbackMethod>deleteVariables</CallbackMethod>
             </Field>
 
-            <!--  This section for defining the format for device broadcasts to this broker  -->
+            <!--  This section for defining the format for device broadcasts for this broker  -->
 
             <Field id="device_template_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="device_template">
                 <Label>See the Wiki for how to use this section.</Label>
@@ -262,6 +285,7 @@
         		<List>
         			<Option value="connect">Connection Info</Option>
         			<Option value="subscriptions">Topic Subscriptions</Option>
+        			<Option value="control">Device/Variable Control</Option>
         			<Option value="devices">Published Devices</Option>
         			<Option value="device_template">Device Publishing Template</Option>
         			<Option value="variables">Published Variables</Option>
@@ -314,6 +338,28 @@
                 <Label/>
                 <Title>Delete Subscriptions</Title>
                 <CallbackMethod>deleteSubscriptions</CallbackMethod>
+            </Field>
+
+            <!--  This section for managing device/variable command for this broker  -->
+
+            <Field id="control_section_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="control">
+                <Label>See the Wiki for how to use this section. </Label>
+            </Field>
+            <Field id="control_section_separator1" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_device_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Device commands:</Label>
+            </Field>
+            <Field id="control_device_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/devices/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
+            </Field>
+            <Field id="control_section_separator2" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_variable_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Variable commands:</Label>
+            </Field>
+            <Field id="control_variable_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/variables/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
             </Field>
 
             <!--  This section for managing device publishing to this broker  -->
@@ -492,6 +538,7 @@
         		<List>
         			<Option value="connect">Connection Info</Option>
         			<Option value="subscriptions">Topic Subscriptions</Option>
+        			<Option value="control">Device/Variable Control</Option>
         			<Option value="devices">Published Devices</Option>
         			<Option value="device_template">Device Publishing Template</Option>
         			<Option value="variables">Published Variables</Option>
@@ -551,6 +598,28 @@
                 <Label/>
                 <Title>Delete Subscriptions</Title>
                 <CallbackMethod>deleteSubscriptions</CallbackMethod>
+            </Field>
+
+            <!--  This section for managing device/variable command for this broker  -->
+
+            <Field id="control_section_label" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="control">
+                <Label>See the Wiki for how to use this section. </Label>
+            </Field>
+            <Field id="control_section_separator1" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_device_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Device commands:</Label>
+            </Field>
+            <Field id="control_device_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/devices/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
+            </Field>
+            <Field id="control_section_separator2" type="separator" visibleBindingId="section" visibleBindingValue="control"/>
+            <Field id="control_enable_variable_commands" type="checkbox" visibleBindingId="section" visibleBindingValue="control">
+                <Label>Enable Variable commands:</Label>
+            </Field>
+            <Field id="control_variable_pattern" type="textfield"  visibleBindingId="section" visibleBindingValue="control"
+                defaultValue="indigo/variables/(?P&lt;id&gt;.*)/command/(?P&lt;cmd&gt;.*)">
+                <Label>Command Topic:</Label>
             </Field>
 
             <!--  This section for managing device publishing to this broker  -->

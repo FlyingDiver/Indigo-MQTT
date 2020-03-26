@@ -356,12 +356,50 @@ class Plugin(indigo.PluginBase):
                     self.logger.exception("Exception {}".format(e))
                 topic = topic_base
                
+        # Update broker states
         stateList = [
             { 'key':'last_topic',   'value': topic },
             { 'key':'last_payload', 'value': payload }
         ]    
         device.updateStatesOnServer(stateList)
         self.logger.debug(u"{}: Saved states, topic: {}, payload: {}".format(device.name, topic, payload))
+        
+        # look for device or variable commands
+        
+        if device.pluginProps.get("control_enable_device_commands", False):        
+            control_device_pattern = device.pluginProps.get("control_device_pattern", None)
+            match = re.match(control_device_pattern, topic)
+            if match:
+                devId = int(match.group('id'))
+                cmd = match.group('cmd').lower()
+                self.logger.debug(u"{}: Device command match, DevId: {}, command: {}, payload: {}".format(device.name, devId, cmd, payload))
+                if cmd == 'on':
+                    indigo.device.turnOn(devId)
+                elif cmd == 'off':
+                    indigo.device.turnOff(devId)
+                elif cmd == 'toggle':
+                    indigo.device.toggle(devId)
+                elif cmd == 'set' and payload.lower() == 'on':
+                    indigo.device.turnOn(devId)
+                elif cmd == 'set' and payload.lower() == 'off':
+                    indigo.device.turnOff(devId)
+                elif cmd == 'brightness':
+                    indigo.dimmer.setBrightness(devId, int(payload))
+                elif cmd == 'brighten':
+                    indigo.dimmer.brighten(devId, int(payload))
+            
+        if device.pluginProps.get("control_enable_variable_commands", False):
+            control_variable_pattern = device.pluginProps.get("control_variable_pattern", None)
+            match = re.match(control_variable_pattern, topic)
+            if match:
+                varId = int(match.group('id'))
+                cmd = match.group('cmd').lower()
+                self.logger.debug(u"{}: Variable command match, varId: {}, command: {}, payload: {}".format(device.name, varId, cmd, payload))
+                if cmd == 'set':
+                    indigo.variable.updateValue(varId, value=unicode(payload))
+                elif cmd == 'clear':
+                    indigo.variable.updateValue(varId, value=u"")
+
         
         # Now do any triggers
 
