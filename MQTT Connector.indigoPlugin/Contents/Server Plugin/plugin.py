@@ -763,7 +763,7 @@ class Plugin(indigo.PluginBase):
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
-        retain = bool(pluginAction.props["retain"])
+        retain = bool(int(pluginAction.props["retain"]))
         self.logger.threaddebug(u"{}: publishMessageAction {}: {}, {}, {}".format(brokerDevice.name, topic, payload, qos, retain))
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
