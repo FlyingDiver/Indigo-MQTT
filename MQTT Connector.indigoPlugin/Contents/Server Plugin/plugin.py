@@ -43,6 +43,9 @@ def makeDevForJSON(device):
     dev_data['states'] = []
     for key, value in device.states.iteritems():
         dev_data['states'].append({'name': key, 'value': value})
+    for key in dir(device):
+        if key.find("supports") > -1:
+            dev_data[key] = True
     return dev_data
 
 def makeVarForJSON(variable):
@@ -138,6 +141,7 @@ class Plugin(indigo.PluginBase):
             # if we got here, then this device should be published
             
             dev_data = makeDevForJSON(newDevice)
+            self.logger.threaddebug(u"{}: deviceUpdated: template data: {}".format(newDevice.name, dev_data))
             topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
             if not topic_template:
                 self.logger.debug(u"{}: deviceUpdated: unable to publish device, no topic template".format(newDevice.name))
