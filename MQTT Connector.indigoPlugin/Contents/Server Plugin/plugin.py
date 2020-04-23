@@ -43,9 +43,10 @@ def makeDevForJSON(device):
     dev_data['states'] = []
     for key, value in device.states.iteritems():
         dev_data['states'].append({'name': key, 'value': value})
+    dev_data['capabilities'] = []
     for key in dir(device):
         if key.find("supports") > -1:
-            dev_data[key] = True
+            dev_data['capabilities'].append({'name': key, 'value': True})
     return dev_data
 
 def makeVarForJSON(variable):

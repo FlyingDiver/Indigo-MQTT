@@ -178,7 +178,7 @@
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
                 defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
                 <Label>Payload:
                 
                 
@@ -431,7 +431,7 @@
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
                 defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
                 <Label>Payload:
                 
                 
@@ -691,7 +691,7 @@
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
                 defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }'>
+                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
                 <Label>Payload:
                 
                 
