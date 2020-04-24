@@ -37,16 +37,20 @@ def splitall(path):
 def makeDevForJSON(device):
     dev_data = {}
     dev_data['name'] = device.name
-    dev_data['deviceId'] = device.id
-    dev_data['model'] = device.model
     dev_data['address'] = device.address
+    dev_data['deviceId'] = device.id
+    dev_data['deviceTypeId'] = device.deviceTypeId
+    dev_data['model'] = device.model
+    dev_data['model'] = device.model
+    dev_data['subModel'] = device.subModel
+    dev_data['protocol'] = device.protocol
     dev_data['states'] = []
     for key, value in device.states.iteritems():
         dev_data['states'].append({'name': key, 'value': value})
     dev_data['capabilities'] = []
     for key in dir(device):
         if key.find("supports") > -1:
-            dev_data['capabilities'].append({'name': key, 'value': True})
+            dev_data['capabilities'].append({'name': key, 'value': getattr(device, key)})
     return dev_data
 
 def makeVarForJSON(variable):
