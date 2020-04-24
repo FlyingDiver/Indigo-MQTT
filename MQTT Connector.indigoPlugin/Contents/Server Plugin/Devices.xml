@@ -177,8 +177,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
+                defaultValue='{"name": "{{name}}", "address": "{{address}}", "deviceId": "{{deviceId}}", "deviceTypeId": "{{deviceTypeId}}", "model": "{{model}}", "subModel": "{{subModel}}",  
+                "protocol": "{{protocol}}", "states": { {{#states}} "{{name}}": "{{value}}", {{/states}} }, "capabilities": [ {{#capabilities}} "{{name}}", {{/capabilities}} ] }'>
                 <Label>Payload:
                 
                 
@@ -430,8 +430,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
+                defaultValue='{"name": "{{name}}", "address": "{{address}}", "deviceId": "{{deviceId}}", "deviceTypeId": "{{deviceTypeId}}", "model": "{{model}}", "subModel": "{{subModel}}",  
+                "protocol": "{{protocol}}", "states": { {{#states}} "{{name}}": "{{value}}", {{/states}} }, "capabilities": [ {{#capabilities}} "{{name}}", {{/capabilities}} ] }'>
                 <Label>Payload:
                 
                 
@@ -690,8 +690,8 @@
                 </Label>
             </Field>
             <Field id="device_template_payload" type="textfield"  visibleBindingId="section" visibleBindingValue="device_template"
-                defaultValue='{"name": "{{name}}", "deviceId": "{{deviceId}}","model": "{{model}}", "address": "{{address}}", "states": 
-                    { {{#states}} "{{name}}": "{{value}}", {{/states}} } }, "capabilities": { {{#capabilities}} "{{name}}": "{{value}}", {{/capabilities}} } }'>
+                defaultValue='{"name": "{{name}}", "address": "{{address}}", "deviceId": "{{deviceId}}", "deviceTypeId": "{{deviceTypeId}}", "model": "{{model}}", "subModel": "{{subModel}}",  
+                "protocol": "{{protocol}}", "states": { {{#states}} "{{name}}": "{{value}}", {{/states}} }, "capabilities": [ {{#capabilities}} "{{name}}", {{/capabilities}} ] }'>
                 <Label>Payload:
                 
                 

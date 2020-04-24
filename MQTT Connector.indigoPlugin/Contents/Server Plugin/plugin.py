@@ -41,7 +41,6 @@ def makeDevForJSON(device):
     dev_data['deviceId'] = device.id
     dev_data['deviceTypeId'] = device.deviceTypeId
     dev_data['model'] = device.model
-    dev_data['model'] = device.model
     dev_data['subModel'] = device.subModel
     dev_data['protocol'] = device.protocol
     dev_data['states'] = []
@@ -49,8 +48,8 @@ def makeDevForJSON(device):
         dev_data['states'].append({'name': key, 'value': value})
     dev_data['capabilities'] = []
     for key in dir(device):
-        if key.find("supports") > -1:
-            dev_data['capabilities'].append({'name': key, 'value': getattr(device, key)})
+        if key.find("supports") > -1 and getattr(device, key):
+            dev_data['capabilities'].append({'name': key})
     return dev_data
 
 def makeVarForJSON(variable):
@@ -158,6 +157,7 @@ class Plugin(indigo.PluginBase):
                 return
             payload = pystache.render(payload_template, dev_data)
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
+            payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", ]", " ]")
             self.logger.debug(u"{}: deviceUpdated: publishing device - payload = {}".format(newDevice.name, payload))
 
             qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
