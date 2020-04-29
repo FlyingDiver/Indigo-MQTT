@@ -138,9 +138,9 @@ class Plugin(indigo.PluginBase):
             self.logger.threaddebug(u"{}: deviceUpdated: id = {}, devList = {}".format(newDevice.name, newDevice.id, devList))
 
             if doExcludes and listedDevice:                     # excluded, so skip
-                return      
+                continue      
             elif (not doExcludes) and (not listedDevice):       # not included, so skip
-                return
+                continue
                 
             # if we got here, then this device should be published
             
@@ -149,12 +149,12 @@ class Plugin(indigo.PluginBase):
             topic_template =  brokerDevice.pluginProps.get("device_template_topic", None)
             if not topic_template:
                 self.logger.debug(u"{}: deviceUpdated: unable to publish device, no topic template".format(newDevice.name))
-                return
+                continue
             topic = pystache.render(topic_template, dev_data)
             payload_template = brokerDevice.pluginProps.get("device_template_payload", None)
             if not payload_template:
                 self.logger.debug(u"{}: deviceUpdated: unable to publish device, no payload template".format(newDevice.name))
-                return
+                continue
             payload = pystache.render(payload_template, dev_data)
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", ]", " ]")
@@ -176,11 +176,11 @@ class Plugin(indigo.PluginBase):
                 var_data = makeVarForJSON(newVariable)
                 topic_template =  brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
-                    return
+                    continue
                 topic = pystache.render(topic_template, var_data)
                 payload_template = brokerDevice.pluginProps.get("variable_template_payload", None)
                 if not payload_template:
-                    return
+                    continue
                 payload = pystache.render(payload_template, var_data)
                 payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
                 
