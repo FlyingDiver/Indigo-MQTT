@@ -371,7 +371,7 @@ class Plugin(indigo.PluginBase):
             { 'key':'last_payload', 'value': payload }
         ]    
         device.updateStatesOnServer(stateList)
-        self.logger.debug(u"{}: Saved states, topic: {}, payload: {}".format(device.name, topic, payload))
+        self.logger.threaddebug(u"{}: Saved states, topic: {}, payload: {}".format(device.name, topic, payload))
         
         # look for device or variable commands
         
