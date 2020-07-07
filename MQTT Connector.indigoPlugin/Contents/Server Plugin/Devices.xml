@@ -260,13 +260,13 @@
             </State>
             <State id="last_topic">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Topic</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Topic</TriggerLabel>
+                <ControlPageLabel>Last Topic</ControlPageLabel>
             </State>
             <State id="last_payload">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Payload</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Payload</TriggerLabel>
+                <ControlPageLabel>Last Payload</ControlPageLabel>
             </State>
         </States>
         <UiDisplayStateId>status</UiDisplayStateId>
@@ -513,13 +513,13 @@
             </State>
             <State id="last_topic">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Topic</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Topic</TriggerLabel>
+                <ControlPageLabel>Last Topic</ControlPageLabel>
             </State>
             <State id="last_payload">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Payload</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Payload</TriggerLabel>
+                <ControlPageLabel>Last Payload</ControlPageLabel>
             </State>
         </States>
         <UiDisplayStateId>status</UiDisplayStateId>
@@ -773,13 +773,13 @@
             </State>
             <State id="last_topic">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Topic</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Topic</TriggerLabel>
+                <ControlPageLabel>Last Topic</ControlPageLabel>
             </State>
             <State id="last_payload">
                 <ValueType>String</ValueType>
-                <TriggerLabel>Payload</TriggerLabel>
-                <ControlPageLabel>Topic</ControlPageLabel>
+                <TriggerLabel>Last Payload</TriggerLabel>
+                <ControlPageLabel>Last Payload</ControlPageLabel>
             </State>
         </States>
         <UiDisplayStateId>status</UiDisplayStateId>
