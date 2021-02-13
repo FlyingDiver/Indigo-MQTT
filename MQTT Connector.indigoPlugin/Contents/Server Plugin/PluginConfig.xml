@@ -12,7 +12,10 @@
 			<Option value="50">Critical Errors Only</Option>
 		</List>
 	</Field>			
-
+	<Field type="textfield" id="queueWarning" defaultValue="10">
+		<Label>Queue size for log warning:</Label>
+		<Description>(Only change if you get spikes of MQTT messages)</Description>
+	</Field>
 	<Field type="checkbox" id="showDebugInfo">
 		<Label>Enable library debugging:</Label>
 		<Description>(not recommended, requires plugin restart)</Description>

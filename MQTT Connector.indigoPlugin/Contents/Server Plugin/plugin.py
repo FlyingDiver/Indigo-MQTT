@@ -99,7 +99,11 @@ class Plugin(indigo.PluginBase):
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
         self.queueDict = {}
-        
+        try:
+            self.queueWarning = int(valuesDict[u"queueWarning"])
+        except:
+            self.queueWarning = 10
+          
         savedList = indigo.activePlugin.pluginPrefs.get(u"aggregators", None)
         if savedList:
             self.aggregators = json.loads(savedList)
@@ -201,6 +205,11 @@ class Plugin(indigo.PluginBase):
         except:
             self.logLevel = logging.INFO
         self.indigo_log_handler.setLevel(self.logLevel)
+
+        try:
+            self.queueWarning = int(valuesDict[u"queueWarning"])
+        except:
+            self.queueWarning = 10
 
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)
@@ -357,7 +366,7 @@ class Plugin(indigo.PluginBase):
                 if remainder[0] == '/':                 # not supposed to have a trailing '/', but just in case.
                     remainder = remainder[1:]
                 agg_dict = self.recurseAggregator(remainder, payload)
-                self.logger.debug(u"{}: agg_dict: {}".format(device.name, agg_dict))
+                self.logger.threaddebug(u"{}: agg_dict: {}".format(device.name, agg_dict))
                 
                 try:
                     payload = json.dumps(deep_merge_dicts(self.aggregators[aggID]['payload'], agg_dict))
@@ -938,7 +947,7 @@ class Plugin(indigo.PluginBase):
         queue.put(message)
         self.logger.threaddebug(u"{}: queueLastMessage, queue = {} ({})".format(device.name, messageType, queue.qsize()))
         indigo.server.broadcastToSubscribers(u"com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type' : messageType, 'brokerID': device.id})        
-        if queue.qsize() > 10:
+        if queue.qsize() > self.queueWarning:
             self.logger.warning("Queue for message type '{}' has {} messages pending".format(messageType, queue.qsize()))
             
     ########################################################################
@@ -1004,7 +1013,7 @@ class Plugin(indigo.PluginBase):
             self.logger.info(u"No Aggregators defined")
             return
             
-        fstring = u"{:^35}{:^35}{}"
+        fstring = u"{:^50}{:^50}{}"
         self.logger.info(fstring.format("Aggregator ID", "Topic Base", "Payload"))
         for aggID, aggItem in self.aggregators.iteritems():
              self.logger.info(fstring.format(aggID, aggItem["topic_base"], json.dumps(aggItem.get("payload", None), sort_keys=True, indent=4, separators=(',', ': '))))
