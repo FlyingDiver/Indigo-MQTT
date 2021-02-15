@@ -115,15 +115,6 @@ class Plugin(indigo.PluginBase):
                             
     def shutdown(self):
         self.logger.info(u"Shutting down MQTT Connector")
-
-#   No runConcurrentThread since all brokers are running in their own threads and using callbacks.
-
-#     def runConcurrentThread(self):
-#         try:
-#             while True:
-#               
-#         except self.StopThread:
-#             pass        
             
 
     def deviceUpdated(self, origDevice, newDevice):

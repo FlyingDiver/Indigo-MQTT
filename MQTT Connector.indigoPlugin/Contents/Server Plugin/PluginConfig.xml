@@ -12,7 +12,7 @@
 			<Option value="50">Critical Errors Only</Option>
 		</List>
 	</Field>			
-	<Field type="textfield" id="queueWarning" defaultValue="10">
+	<Field type="textfield" id="queueWarning" defaultValue="30">
 		<Label>Queue size for log warning:</Label>
 		<Description>(Only change if you get spikes of MQTT messages)</Description>
 	</Field>
