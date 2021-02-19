@@ -32,7 +32,8 @@ class MQTTBroker(object):
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         self.client = mqtt.Client(client_id="indigo-mqtt-{}".format(device.id), clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
-
+        self.client.suppress_exceptions = True
+        
         if bool(indigo.activePlugin.pluginPrefs[u"showDebugInfo"]):
             self.logger.debug(u"{}: Enabling library level debugging".format(device.name))    
             self.client.enable_logger(self.logger)
@@ -110,8 +111,9 @@ class MQTTBroker(object):
 
     def on_message(self, client, userdata, msg):
         device = indigo.devices[self.deviceID]
-        self.logger.threaddebug(u"{}: Message received: {}, payload: {}".format(device.name, msg.topic, msg.payload))
-        indigo.activePlugin.processReceivedMessage(self.deviceID, msg.topic, msg.payload)
+        payload = msg.payload.decode("utf-8")
+        self.logger.threaddebug(u"{}: Message topic: {}, payload = {}".format(device.name, msg.topic, payload))
+        indigo.activePlugin.processReceivedMessage(self.deviceID, msg.topic, payload)
 
     def on_publish(self, client, userdata, mid):
         device = indigo.devices[self.deviceID]

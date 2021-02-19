@@ -342,7 +342,7 @@ class Plugin(indigo.PluginBase):
     
     def processReceivedMessage(self, devID, topic, payload):
         device = indigo.devices[devID]
-        self.logger.debug(u"{}: Message received: {}, payload: {}".format(device.name, topic, payload))
+        self.logger.debug(u"{}: processReceivedMessage: {}, payload: {}".format(device.name, topic, payload))
 
         # check for topic aggregation
         
