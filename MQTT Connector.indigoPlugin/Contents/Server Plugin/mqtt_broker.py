@@ -61,13 +61,17 @@ class MQTTBroker(object):
             self.connected = True
             self.client.loop_start()
             
-    def __del__(self):
+                  
+    def disconnect(self):
+        self.client.on_disconnect = None
+        device = indigo.devices[self.deviceID]
+        self.logger.info(u"{}: Disconnecting".format(device.name))
         self.client.loop_stop()
         self.client.disconnect()
-        device = indigo.devices[self.deviceID]
         device.updateStateOnServer(key="status", value="Not Connected")
-        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
-                  
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)  
+        
+        
     def publish(self, topic, payload=None, qos=0, retain=False):
         self.client.publish(topic, payload, qos, retain)
 
@@ -96,8 +100,8 @@ class MQTTBroker(object):
             for s in subs:
                 qos = int(s[0:1])
                 topic = s[2:]
-                client.subscribe(topic, qos)
                 self.logger.info(u"{}: Subscribing to: {} ({})".format(device.name, topic, qos))
+                client.subscribe(topic, qos)
             
         device.updateStateOnServer(key="status", value="Connected {}".format(rc))
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)

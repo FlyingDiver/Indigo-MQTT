@@ -57,11 +57,11 @@ class AIoTBroker(object):
             self.logger.exception(u"{}: Exception while creating Broker object".format(device.name))
                   
             
-    def __del__(self):
+    def disconnect(self):
         device = indigo.devices[self.deviceID]
         self.aIoTClient.disconnect()        
         device.updateStateOnServer(key="status", value="Not Connected")
-        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)              
       
     def publish(self, topic, payload=None, qos=0, retain=False):
         device = indigo.devices[self.deviceID]

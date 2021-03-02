@@ -256,6 +256,7 @@ class Plugin(indigo.PluginBase):
     def deviceStopComm(self, device):
         self.logger.info(u"{}: Stopping Device".format(device.name))
         if device.deviceTypeId in ["mqttBroker", "dxlBroker", "aIoTBroker"]:
+            self.brokers[device.id].disconnect()
             del self.brokers[device.id]
             device.updateStateOnServer(key="status", value="Stopped")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      

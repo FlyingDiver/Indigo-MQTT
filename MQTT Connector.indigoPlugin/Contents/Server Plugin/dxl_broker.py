@@ -59,7 +59,7 @@ class DXLBroker(object):
                 self.logger.info(u"{}: Subscribing to: {}".format(device.name, topic))
                 
             
-    def __del__(self):
+    def disconnect(self):
         device = indigo.devices[self.deviceID]
         self.dxl_client.disconnect()        
         self.dxl_client.destroy()        
