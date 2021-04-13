@@ -21,8 +21,8 @@ class MQTTBroker(object):
         self.protocol = int(device.pluginProps.get(u'protocol', 4))
         self.transport = device.pluginProps.get(u'transport', "tcp")
 
-        self.username = device.pluginProps.get(u'username', None)
-        self.password = device.pluginProps.get(u'password', None)
+        self.username = device.pluginProps.get(u'username', None).strip()
+        self.password = device.pluginProps.get(u'password', None).strip()
 
         self.useTLS = device.pluginProps.get(u'useTLS', False)
 

@@ -99,10 +99,8 @@ class Plugin(indigo.PluginBase):
         self.brokers = {}            # Dict of Indigo MQTT Brokers, indexed by device.id
         self.triggers = {}
         self.queueDict = {}
-        try:
-            self.queueWarning = int(valuesDict[u"queueWarning"])
-        except:
-            self.queueWarning = 10
+        self.queueWarning = int(self.pluginPrefs.get(u"queueWarning", "30"))
+        self.logger.debug(u"MQTT Connector: queueWarning = {}".format(self.queueWarning))
           
         savedList = indigo.activePlugin.pluginPrefs.get(u"aggregators", None)
         if savedList:
@@ -153,11 +151,11 @@ class Plugin(indigo.PluginBase):
             payload = pystache.render(payload_template, dev_data)
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
             payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", ]", " ]")
-            self.logger.debug(u"{}: deviceUpdated: publishing device - payload = {}".format(newDevice.name, payload))
 
             qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
             retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
             broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+            self.logger.threaddebug(u"{}: deviceUpdated: publishing device - payload = {}".format(newDevice.name, payload))
 
     def variableUpdated(self, origVariable, newVariable):
         indigo.PluginBase.variableUpdated(self, origVariable, newVariable)
@@ -171,10 +169,12 @@ class Plugin(indigo.PluginBase):
                 var_data = makeVarForJSON(newVariable)
                 topic_template =  brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
+                    self.logger.debug(u"{}: deviceUpdated: unable to publish variable, no topic template".format(newDevice.name))
                     continue
                 topic = pystache.render(topic_template, var_data)
                 payload_template = brokerDevice.pluginProps.get("variable_template_payload", None)
                 if not payload_template:
+                    self.logger.debug(u"{}: deviceUpdated: unable to publish variable, no payload template".format(newVariable.name))
                     continue
                 payload = pystache.render(payload_template, var_data)
                 payload = " ".join(re.split("\s+", payload, flags=re.UNICODE)).replace(", }", " }")
@@ -182,6 +182,7 @@ class Plugin(indigo.PluginBase):
                 qos = int(brokerDevice.pluginProps.get("variable_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("variable_template_retain", False))
                 broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+                self.logger.threaddebug(u"{}: deviceUpdated: publishing variable - payload = {}".format(newVariable.name, payload))
 
         
     ########################################
@@ -200,7 +201,7 @@ class Plugin(indigo.PluginBase):
         try:
             self.queueWarning = int(valuesDict[u"queueWarning"])
         except:
-            self.queueWarning = 10
+            self.queueWarning = 30
 
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)
