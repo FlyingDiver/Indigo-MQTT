@@ -5,6 +5,7 @@
 import time
 import logging
 import indigo
+from os.path import exists
 
 import paho.mqtt.client as mqtt
 
@@ -24,8 +25,6 @@ class MQTTBroker(object):
         self.username = device.pluginProps.get(u'username', None).strip()
         self.password = device.pluginProps.get(u'password', None).strip()
 
-        self.useTLS = device.pluginProps.get(u'useTLS', False)
-
         self.logger.debug(u"{}: Broker __init__ address = {}, port = {}, protocol = {}, transport = {}".format(device.name, self.address, self.port, self.protocol, self.transport))
         
         device.updateStateOnServer(key="status", value="Not Connected")
@@ -41,8 +40,21 @@ class MQTTBroker(object):
         if self.username:
             self.client.username_pw_set(self.username, self.password)
         
-        if self.useTLS:
-            self.client.tls_set()
+        if device.pluginProps.get(u'useTLS', False):
+        
+            certFile = device.pluginProps.get(u'certFile', None)
+            if not certFile or not len(certFile):
+                self.logger.debug(u"{}: No cert file provided, using default cert_file".format(device.name))
+                self.client.tls_set()
+            else:
+                certFile = indigo.server.getInstallFolderPath() + '/' + certFile
+                if not exists(certFile):
+                    self.logger.debug(u"{}: Specified cert file '{}' doesn't exist, using default cert_file".format(device.name, certFile))
+                    self.client.tls_set()
+                else:
+                    self.logger.debug(u"{}: Using cert_file '{}'".format(device.name, certFile))
+                    self.client.tls_set(ca_certs=certFile)
+            
     
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -53,7 +65,8 @@ class MQTTBroker(object):
 
         try:
             self.client.connect(self.address, self.port, 60)
-        except:
+        except Exception as e:
+            self.logger.debug(u"{}: Broker connect error: {}".format(device.name, e))
             device.updateStateOnServer(key="status", value="Connection Failed")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
             self.connected = False

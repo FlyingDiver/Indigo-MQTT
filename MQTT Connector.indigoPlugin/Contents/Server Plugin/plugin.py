@@ -281,6 +281,8 @@ class Plugin(indigo.PluginBase):
                 return True           
             if origDev.pluginProps.get('useTLS', None) != newDev.pluginProps.get('useTLS', None):
                 return True           
+            if origDev.pluginProps.get('certFile', None) != newDev.pluginProps.get('certFile', None):
+                return True           
 
             # a bit of a hack to make sure name changes get pushed down immediately
             try:                

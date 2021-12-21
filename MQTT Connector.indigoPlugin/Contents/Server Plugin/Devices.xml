@@ -55,6 +55,10 @@
                 <Label>Use SSL/TLS:</Label>
             </Field>
 
+            <Field id="certFile" type="textfield" visibleBindingId="section" visibleBindingValue="connect">
+                <Label>Certificate File Path (blank for default):</Label>
+            </Field>
+
             <!--  This section for managing topic subscriptions for this broker  -->
 
             <Field id="subscriptions_newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
