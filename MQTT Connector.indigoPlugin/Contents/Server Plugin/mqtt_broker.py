@@ -47,7 +47,9 @@ class MQTTBroker(object):
                 self.logger.debug(u"{}: No cert file provided, using default cert_file".format(device.name))
                 self.client.tls_set()
             else:
-                certFile = indigo.server.getInstallFolderPath() + '/' + certFile
+                self.logger.debug(u"{}: Specified cert_file '{}'".format(device.name, certFile))
+                if certFile[0:1] != '/':  # leave absolute path alone
+                    certFile = indigo.server.getInstallFolderPath() + '/' + certFile
                 if not exists(certFile):
                     self.logger.debug(u"{}: Specified cert file '{}' doesn't exist, using default cert_file".format(device.name, certFile))
                     self.client.tls_set()
