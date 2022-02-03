@@ -28,7 +28,7 @@ class AIoTBroker(object):
         cert_file = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'cert_file', "")
         private_key = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'private_key', "")
 
-        self.logger.debug(u"{}: Broker __init__ address = {}:{}, ca_bundle = {}, cert_file = {}, private_key = {}".format(device.name, address, port, ca_bundle, cert_file, private_key))
+        self.logger.debug(f"{device.name}: Broker __init__ address = {address}:{port}, ca_bundle = {ca_bundle}, cert_file = {cert_file}, private_key = {private_key}")
         
         device.updateStateOnServer(key="status", value="Not Connected")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
@@ -50,13 +50,11 @@ class AIoTBroker(object):
             self.aIoTClient.onOffline = self.onOffline
             self.aIoTClient.onMessage = self.onMessage
 
-
             self.aIoTClient.connectAsync(ackCallback=self.onConnect)
 
-        except:
-            self.logger.exception(u"{}: Exception while creating Broker object".format(device.name))
-                  
-            
+        except (Exception,):
+            self.logger.exception(f"{device.name}: Exception while creating Broker object")
+
     def disconnect(self):
         device = indigo.devices[self.deviceID]
         self.aIoTClient.disconnect()        
@@ -126,4 +124,3 @@ class AIoTBroker(object):
     def onUnsubscribe(self, mid):
         device = indigo.devices[self.deviceID]
         self.logger.debug(u"{}: Unsubscribe complete: {}".format(device.name, mid))
-
