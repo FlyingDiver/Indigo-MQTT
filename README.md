@@ -6,9 +6,11 @@ This plugin acts as a client to one or more MQTT brokers.
 
 [Quick Start on the Wiki](https://github.com/FlyingDiver/Indigo-MQTT/wiki)
 
-
-
-### Indigo 7 Only
-
-This plugin requires Indigo 7 or greater.
+| Requirement            |                     |   |
+|------------------------|---------------------|---|
+| Minimum Indigo Version | 2022.1              |   |
+| Python Library (API)   | Supported           |   |
+| Requires Local Network | Optional            |   |
+| Requires Internet      | Optional            |   |
+| Hardware Interface     | None                |   |
 
