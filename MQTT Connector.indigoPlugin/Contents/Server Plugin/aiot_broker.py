@@ -22,11 +22,11 @@ class AIoTBroker(object):
         
         self.deviceID = device.id
     
-        address = device.pluginProps.get(u'address', "")
-        port = int(device.pluginProps.get(u'port', ""))
-        ca_bundle = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'ca_bundle', "")
-        cert_file = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'cert_file', "")
-        private_key = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'private_key', "")
+        address = device.pluginProps.get('address', "")
+        port = int(device.pluginProps.get('port', ""))
+        ca_bundle = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('ca_bundle', "")
+        cert_file = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('cert_file', "")
+        private_key = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('private_key', "")
 
         self.logger.debug(f"{device.name}: Broker __init__ address = {address}:{port}, ca_bundle = {ca_bundle}, cert_file = {cert_file}, private_key = {private_key}")
         

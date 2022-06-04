@@ -99,7 +99,7 @@ class Plugin(indigo.PluginBase):
         else:
             self.aggregators = {}
 
-    def startup():  # noqa
+    def startup(self): # noqa
         indigo.devices.subscribeToChanges()
         indigo.variables.subscribeToChanges()
 
@@ -816,13 +816,11 @@ class Plugin(indigo.PluginBase):
         retList = []
         indigoInstallPath = indigo.server.getInstallFolderPath()
         pluginsList = os.listdir(indigoInstallPath + '/' + 'Plugins')
-        self.logger.debug(f"pluginsList = {pluginsList}")
         for plugin in pluginsList:
             # Check for Indigo Plugins and exclude 'system' plugins
             if plugin.endswith('.indigoPlugin') and plugin[0:1] != '.':
                 # retrieve plugin Info.plist file
                 path = f"{indigoInstallPath}/Plugins/{plugin}/Contents/Info.plist"
-                self.logger.debug(f"path = {path}")
                 with open(path, 'rb') as fp:
                     try:
                         pl = plistlib.load(fp)

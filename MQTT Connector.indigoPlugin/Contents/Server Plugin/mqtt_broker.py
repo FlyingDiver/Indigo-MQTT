@@ -18,13 +18,13 @@ class MQTTBroker(object):
         self.deviceID = device.id
         self.reconnectTime = None
 
-        self.address = device.pluginProps.get(u'address', "")
-        self.port = int(device.pluginProps.get(u'port', 1883))
-        self.protocol = int(device.pluginProps.get(u'protocol', 4))
-        self.transport = device.pluginProps.get(u'transport', "tcp")
+        self.address = device.pluginProps.get('address', "")
+        self.port = int(device.pluginProps.get('port', 1883))
+        self.protocol = int(device.pluginProps.get('protocol', 4))
+        self.transport = device.pluginProps.get('transport', "tcp")
 
-        self.username = device.pluginProps.get(u'username', None).strip()
-        self.password = device.pluginProps.get(u'password', None).strip()
+        self.username = device.pluginProps.get('username', None).strip()
+        self.password = device.pluginProps.get('password', None).strip()
 
         self.logger.debug(f"{device.name}: Broker __init__ address = {self.address}, port = {self.port}, protocol = {self.protocol}, transport = {self.transport}")
 
@@ -34,7 +34,7 @@ class MQTTBroker(object):
         self.client = mqtt.Client(client_id="indigo-mqtt-{}".format(device.id), clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
         self.client.suppress_exceptions = True
 
-        if bool(indigo.activePlugin.pluginPrefs[u"showDebugInfo"]):
+        if bool(indigo.activePlugin.pluginPrefs["showDebugInfo"]):
             self.logger.debug(f"{device.name}: Enabling library level debugging")
             self.client.enable_logger(self.logger)
 
@@ -48,7 +48,7 @@ class MQTTBroker(object):
                 self.logger.debug(f"{device.name}: No cert file provided, using default cert_file")
                 self.client.tls_set()
             else:
-                self.logger.debug(u"{}: Specified cert_file '{}'".format(device.name, certFile))
+                self.logger.debug(f"{device.name}: Specified cert_file '{certFile}'")
                 if certFile[0:1] != '/':  # leave absolute path alone
                     certFile = f"{indigo.server.getInstallFolderPath()}/{certFile}"
                 if not exists(certFile):
