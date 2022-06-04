@@ -22,7 +22,7 @@ kCurDevVersCount = 0  # current version of plugin devices
 # normally used for file system paths, but will work for slash separated topics
 def splitall(path):
     allparts = []
-    while 1:
+    while True:
         parts = os.path.split(path)
         if parts[0] == path:  # sentinel for absolute paths
             allparts.insert(0, parts[0])
@@ -36,7 +36,7 @@ def splitall(path):
     return allparts
 
 
-def makeDevForJSON(device):
+def make_dev_dict(device):
     dev_data = {'name': device.name, 'address': device.address, 'deviceId': device.id,
                 'deviceTypeId': device.deviceTypeId, 'model': device.model, 'subModel': device.subModel,
                 'protocol': device.protocol, 'states': []}
@@ -50,9 +50,8 @@ def makeDevForJSON(device):
     return dev_data
 
 
-def makeVarForJSON(variable):
-    var_data = {'name': variable.name, 'variableId': variable.id, 'value': variable.value}
-    return var_data
+def make_var_dict(variable):
+    return {'name': variable.name, 'variableId': variable.id, 'value': variable.value}
 
 
 def deep_merge_dicts(original, incoming):
@@ -61,7 +60,6 @@ def deep_merge_dicts(original, incoming):
     For key conflicts if both values are:
      a. dict: Recursively call deep_merge_dicts on both values.
      b. anything else: Value is overridden.
-
     """
     for key in incoming:
         if key in original:
@@ -85,29 +83,25 @@ class Plugin(indigo.PluginBase):
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
-        self.logLevel = int(pluginPrefs.get(u"logLevel", logging.INFO))
+        self.logLevel = int(pluginPrefs.get("logLevel", logging.INFO))
         self.indigo_log_handler.setLevel(self.logLevel)
         log_format = logging.Formatter('%(asctime)s.%(msecs)03d\t[%(levelname)8s] %(name)20s.%(funcName)-25s%(msg)s',datefmt='%Y-%m-%d %H:%M:%S')
         self.plugin_file_handler.setFormatter(log_format)
+        self.plugin_file_handler.setLevel(self.logLevel)
         self.logger.debug(f"MQTT Connector: logLevel = {self.logLevel}")
 
         self.queueWarning = int(pluginPrefs.get("queueWarning", "30"))
         self.logger.debug(f"MQTT Connector: queueWarning value = {self.queueWarning}")
 
-        savedList = pluginPrefs.get(u"aggregators", None)
+        savedList = pluginPrefs.get("aggregators", None)
         if savedList:
             self.aggregators = json.loads(savedList)
         else:
             self.aggregators = {}
 
-    def startup(self):
-        self.logger.info("Starting MQTT Connector")
-
+    def startup():  # noqa
         indigo.devices.subscribeToChanges()
         indigo.variables.subscribeToChanges()
-
-    def shutdown(self):
-        self.logger.info(u"Shutting down MQTT Connector")
 
     def deviceUpdated(self, origDevice, newDevice):
         indigo.PluginBase.deviceUpdated(self, origDevice, newDevice)
@@ -118,9 +112,9 @@ class Plugin(indigo.PluginBase):
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
-            devList = brokerDevice.pluginProps.get(u'published_devices', [])
-            doExcludes = brokerDevice.pluginProps.get(u'devices_doExcludes', False)
-            listedDevice = newDevice.id in devList
+            devList = brokerDevice.pluginProps.get('published_devices', [])
+            doExcludes = brokerDevice.pluginProps.get('devices_doExcludes', False)
+            listedDevice = str(newDevice.id) in devList
             self.logger.threaddebug(f"{newDevice.name}: deviceUpdated: doExcludes = {doExcludes}, listedDevice = {listedDevice}")
             self.logger.threaddebug(f"{newDevice.name}: deviceUpdated: id = {newDevice.id}, devList = {devList}")
 
@@ -131,16 +125,16 @@ class Plugin(indigo.PluginBase):
 
             # if we got here, then this device should be published
 
-            dev_data = makeDevForJSON(newDevice)
+            dev_data = make_dev_dict(newDevice)
             self.logger.threaddebug(f"{newDevice.name}: deviceUpdated: template data: {dev_data}")
             topic_template = brokerDevice.pluginProps.get("device_template_topic", None)
             if not topic_template:
-                self.logger.debug(f"{newDevice.name}: deviceUpdated: unable to publish device, no topic template")
+                self.logger.warning(f"{newDevice.name}: deviceUpdated: unable to publish device, no topic template")
                 continue
             topic = pystache.render(topic_template, dev_data)
             payload_template = brokerDevice.pluginProps.get("device_template_payload", None)
             if not payload_template:
-                self.logger.debug(f"{newDevice.name}: deviceUpdated: unable to publish device, no payload template")
+                self.logger.warning(f"{newDevice.name}: deviceUpdated: unable to publish device, no payload template")
                 continue
             payload = pystache.render(payload_template, dev_data)
             payload = " ".join(re.split(r'\s+', payload, flags=re.UNICODE)).replace(", }", " }")
@@ -157,18 +151,18 @@ class Plugin(indigo.PluginBase):
         for brokerID in self.brokers:
             brokerDevice = indigo.devices[int(brokerID)]
             broker = self.brokers[brokerDevice.id]
-            varList = brokerDevice.pluginProps.get(u'published_variables', [])
-            if newVariable.id in varList:
+            varList = brokerDevice.pluginProps.get('published_variables', [])
+            if str(newVariable.id) in varList:
                 self.logger.debug(f"{newVariable.name}: variableUpdated: publishing variable")
-                var_data = makeVarForJSON(newVariable)
+                var_data = make_var_dict(newVariable)
                 topic_template = brokerDevice.pluginProps.get("variable_template_topic", None)
                 if not topic_template:
-                    self.logger.debug(f"{newVariable.name}: deviceUpdated: unable to publish variable, no topic template")
+                    self.logger.warning(f"{newVariable.name}: deviceUpdated: unable to publish variable, no topic template")
                     continue
                 topic = pystache.render(topic_template, var_data)
                 payload_template = brokerDevice.pluginProps.get("variable_template_payload", None)
                 if not payload_template:
-                    self.logger.debug(u"{}: deviceUpdated: unable to publish variable, no payload template".format(newVariable.name))
+                    self.logger.warning("{}: deviceUpdated: unable to publish variable, no payload template".format(newVariable.name))
                     continue
                 payload = pystache.render(payload_template, var_data)
                 payload = " ".join(re.split(r'\s+', payload, flags=re.UNICODE)).replace(", }", " }")
@@ -182,25 +176,13 @@ class Plugin(indigo.PluginBase):
     # Plugin Preference Methods
     ########################################
 
-    def validatePrefsConfigUi(self, valuesDict):
-        try:
-            self.logLevel = int(valuesDict["logLevel"])
-        except ValueError:
-            self.logLevel = logging.INFO
-        self.indigo_log_handler.setLevel(self.logLevel)
-        try:
-            self.queueWarning = int(valuesDict["queueWarning"])
-        except ValueError:
-            self.queueWarning = 30
-        return True, valuesDict
-
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
         if not userCancelled:
-            try:
-                self.logLevel = int(valuesDict["logLevel"])
-            except ValueError:
-                self.logLevel = logging.INFO
+            self.logLevel = int(valuesDict.get("logLevel", logging.INFO))
             self.indigo_log_handler.setLevel(self.logLevel)
+            self.plugin_file_handler.setLevel(self.logLevel)
+            self.logger.debug(f"MQTT Connector: logLevel = {self.logLevel}")
+            self.queueWarning = int(valuesDict.get("queueWarning", 30))
 
     ########################################
     # Device Management Methods
@@ -211,7 +193,7 @@ class Plugin(indigo.PluginBase):
 
         instanceVers = int(device.pluginProps.get('devVersCount', 0))
         if instanceVers == kCurDevVersCount:
-            self.logger.threaddebug(f"{device.name}: Device is current version: {instanceVers}")
+            self.logger.debug(f"{device.name}: Device is current version: {instanceVers}")
         elif instanceVers < kCurDevVersCount:
             newProps = device.pluginProps
             newProps["devVersCount"] = kCurDevVersCount
@@ -232,7 +214,7 @@ class Plugin(indigo.PluginBase):
             try:
                 from dxl_broker import DXLBroker
             except ImportError:
-                self.logger.warning(f"{device.name}: OpenDXL Client library not installed, unable to create DXL Broker device")
+                self.logger.warning(f"{device.name}: OpenDXL Client library not installed, unable to start DXL Broker device")
             else:
                 self.brokers[device.id] = DXLBroker(device)
 
@@ -241,13 +223,10 @@ class Plugin(indigo.PluginBase):
 
     def deviceStopComm(self, device):
         self.logger.info(f"{device.name}: Stopping Device")
-        if device.deviceTypeId in ["mqttBroker", "dxlBroker", "aIoTBroker"]:
-            self.brokers[device.id].disconnect()
-            del self.brokers[device.id]
-            device.updateStateOnServer(key="status", value="Stopped")
-            device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-        else:
-            self.logger.warning(f"{device.name}: deviceStopComm: Invalid device type: {device.deviceTypeId}")
+        self.brokers[device.id].disconnect()
+        del self.brokers[device.id]
+        device.updateStateOnServer(key="status", value="Stopped")
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     @staticmethod
     def didDeviceCommPropertyChange(origDev, newDev):
@@ -303,7 +282,7 @@ class Plugin(indigo.PluginBase):
                 pass
             else:
                 payload = json_payload
-            return {'topics': {key_string: {u'payload': payload}}}
+            return {'topics': {key_string: {'payload': payload}}}
 
         else:
             split = key_string.split('/', 1)
@@ -616,9 +595,9 @@ class Plugin(indigo.PluginBase):
             try:
                 from dxl_broker import DXLBroker
             except Exception as e:
-                self.logger.warning(u"OpenDXL Client library not installed, unable to create DXL Broker device")
-                errorsDict['address'] = u"OpenDXL Client library not installed, unable to create DXL Broker device"
-                errorsDict['port'] = u"OpenDXL Client library not installed, unable to create DXL Broker device"
+                self.logger.warning("OpenDXL Client library not installed, unable to create DXL Broker device")
+                errorsDict['address'] = "OpenDXL Client library not installed, unable to create DXL Broker device"
+                errorsDict['port'] = "OpenDXL Client library not installed, unable to create DXL Broker device"
                 return False, valuesDict, errorsDict
 
             broker = self.brokers.get(deviceId, None)
@@ -758,7 +737,7 @@ class Plugin(indigo.PluginBase):
         qos = int(pluginAction.props["qos"])
         retain = int(pluginAction.props["retain"])
         pubDevice = indigo.devices[int(pluginAction.props["device"])]
-        payload = makeDevForJSON(pubDevice)
+        payload = make_dev_dict(pubDevice)
         self.logger.threaddebug(f"{brokerDevice.name}: publishDeviceAction {topic}: {payload}, {qos}, {retain}")
         broker.publish(topic=topic, payload=json.dumps(payload), qos=qos, retain=retain)
 
@@ -836,27 +815,25 @@ class Plugin(indigo.PluginBase):
 
         retList = []
         indigoInstallPath = indigo.server.getInstallFolderPath()
-        pluginFolders = ['Plugins']
-        for pluginFolder in pluginFolders:
-            tempList = []
-            pluginsList = os.listdir(indigoInstallPath + '/' + pluginFolder)
-            for plugin in pluginsList:
-                # Check for Indigo Plugins and exclude 'system' plugins
-                if (plugin.lower().endswith('.indigoPlugin')) and (not plugin[0:1] == '.'):
-                    # retrieve plugin Info.plist file
-                    path = f"{indigoInstallPath}/{pluginFolder}/{plugin}/Contents/Info.plist"
+        pluginsList = os.listdir(indigoInstallPath + '/' + 'Plugins')
+        self.logger.debug(f"pluginsList = {pluginsList}")
+        for plugin in pluginsList:
+            # Check for Indigo Plugins and exclude 'system' plugins
+            if plugin.endswith('.indigoPlugin') and plugin[0:1] != '.':
+                # retrieve plugin Info.plist file
+                path = f"{indigoInstallPath}/Plugins/{plugin}/Contents/Info.plist"
+                self.logger.debug(f"path = {path}")
+                with open(path, 'rb') as fp:
                     try:
-                        with open(path, 'rb') as fp:
-                            pl = load(fp)
+                        pl = plistlib.load(fp)
                     except Exception as e:
-                        self.logger.warning(f"getPluginList: Unable to parse plist, skipping: {path}")
+                        self.logger.warning(f"getPluginList: Unable to parse plist, skipping: {path}, err = {err}")
                     else:
                         bundleId = pl["CFBundleIdentifier"]
                         if self.pluginId != bundleId:  # Don't include self (i.e. this plugin) in the plugin list
                             displayName = pl["CFBundleDisplayName"]
-                            tempList.append((bundleId, displayName))
-            tempList.sort(key=lambda tup: tup[1])
-            retList = retList + tempList
+                            retList.append((bundleId, displayName))
+        retList.sort(key=lambda tup: tup[1])
 
         retList.insert(0, ("X-10", "X-10"))
         retList.insert(0, ("Z-Wave", "Z-Wave"))
