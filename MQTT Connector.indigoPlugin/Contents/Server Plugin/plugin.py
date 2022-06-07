@@ -357,11 +357,12 @@ class Plugin(indigo.PluginBase):
                 if cmd == 'set':
                     indigo.variable.updateValue(varId, value=payload)
                 elif cmd == 'clear':
-                    indigo.variable.updateValue(varId, value=u"")
+                    indigo.variable.updateValue(varId, value="")
 
         # Now do any triggers
 
         for trigger in self.triggers.values():
+            self.logger.debug(f"{trigger.name}: type = {trigger.pluginTypeId}, broker = {trigger.pluginProps['brokerID']}")
             if (trigger.pluginProps["brokerID"] == "-1") or (trigger.pluginProps["brokerID"] == str(device.id)):
                 if trigger.pluginTypeId == "messageReceived":
                     indigo.trigger.execute(trigger)
@@ -373,27 +374,43 @@ class Plugin(indigo.PluginBase):
 
                 elif trigger.pluginTypeId == "topicMatch":
                     topic_parts = splitall(topic)
-                    i = 0
+                    self.logger.threaddebug(f"{trigger.name}: topic_parts = {topic_parts}")
+                    self.logger.threaddebug(f"{trigger.name}: match_list = {trigger.pluginProps['match_list']}")
+                    comp_index = 0
                     is_match = True
                     for match in trigger.pluginProps['match_list']:
-                        try:
-                            topic_part = topic_parts[i]
-                        except ValueError:
-                            topic_part = None
-                        i += 1
                         p = match.split(": ")
+                        self.logger.threaddebug(f"{trigger.name}: match.split = '{p[0]}' '{p[1]}'")
+
+                        if p[0] == "End":
+                            self.logger.threaddebug(f"{trigger.name}: End at comp_index = {comp_index}, topic length = {len(topic_parts)}")
+                            if len(topic_parts) != comp_index:  # more parts left
+                                is_match = False
+                                self.logger.threaddebug(f"{trigger.name}: End reached with topic components remaining")
+                            break   # always end at 'End'
+
+                        topic_part = topic_parts[comp_index]
+                        self.logger.threaddebug(f"{trigger.name}: topic_part {comp_index} = '{topic_part}'")
+                        comp_index += 1
+
                         if p[0] in ["Any", "Skip"]:
                             if not topic_part:  # nothing there to skip
                                 is_match = False
+                                self.logger.threaddebug(f"{trigger.name}: topic_part empty for required component")
                                 break
-                        elif p[0] == "End":
-                            if topic_part:  # more parts left
-                                is_match = False
-                            break
+                            self.logger.threaddebug(f"{trigger.name}: Skipping 'Any' component: '{topic_part}'")
+
                         elif p[0] == "Match":
                             if topic_part != p[1]:
                                 is_match = False
+                                self.logger.threaddebug(f"{trigger.name}: Match Failed: '{p[1]}' != '{topic_part}'")
                                 break
+                            self.logger.threaddebug(f"{trigger.name}: Match OK: '{p[1]}' == '{topic_part}'")
+
+                        else:
+                            self.logger.warning(f"{trigger.name}: Unknown Match Type: {p[0]}")
+
+                    self.logger.debug(f"{trigger.name}: Matching complete, is_match = {is_match}")
 
                     # here after all items in match_list have been checked, or a match failed
                     if is_match:
@@ -883,7 +900,7 @@ class Plugin(indigo.PluginBase):
             'payload': device.states['last_payload']
         }
         queue.put(message)
-        self.logger.threaddebug(f"{device.name}: queueLastMessage, queue = {messageType} ({queue.qsize()})")
+        self.logger.threaddebug(f"{device.name}: queueMessage, queue = {messageType} ({queue.qsize()})")
         indigo.server.broadcastToSubscribers("com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type': messageType, 'brokerID': device.id})
         if queue.qsize() > self.queueWarning:
             self.logger.warning(f"Queue for message type '{messageType}' has {queue.qsize()} messages pending")
