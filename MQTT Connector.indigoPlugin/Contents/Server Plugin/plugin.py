@@ -970,5 +970,5 @@ class Plugin(indigo.PluginBase):
 
         fstring = "{:^50}{:^50}{}"
         self.logger.info(fstring.format("Aggregator ID", "Topic Base", "Payload"))
-        for aggID, aggItem in self.aggregators.iteritems():
+        for aggID, aggItem in self.aggregators.items():
             self.logger.info(fstring.format(aggID, aggItem["topic_base"], json.dumps(aggItem.get("payload", None), sort_keys=True, indent=4, separators=(',', ': '))))
