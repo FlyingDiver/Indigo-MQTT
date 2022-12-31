@@ -31,7 +31,7 @@ class MQTTBroker(object):
         device.updateStateOnServer(key="status", value="Not Connected")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        self.client = mqtt.Client(client_id="indigo-mqtt-{}".format(device.id), clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
+        self.client = mqtt.Client(client_id=f"indigo-mqtt-{device.id}", clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
         self.client.suppress_exceptions = True
 
         if bool(indigo.activePlugin.pluginPrefs["showDebugInfo"]):

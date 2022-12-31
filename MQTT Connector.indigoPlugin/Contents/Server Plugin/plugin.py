@@ -690,8 +690,7 @@ class Plugin(indigo.PluginBase):
         if 'match_list' in valuesDict:
             for t in valuesDict['match_list']:
                 match_list.append(t)
-        if s not in match_list:
-            match_list.append(s)
+        match_list.append(s)
         valuesDict['match_list'] = match_list
         valuesDict["match_type"] = "Match"
         valuesDict["match_string"] = ""
