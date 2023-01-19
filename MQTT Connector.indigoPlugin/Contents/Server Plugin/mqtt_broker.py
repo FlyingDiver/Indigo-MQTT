@@ -5,6 +5,7 @@
 import time
 import logging
 import indigo
+import threading
 from os.path import exists
 
 import paho.mqtt.client as mqtt
@@ -25,6 +26,7 @@ class MQTTBroker(object):
 
         self.username = device.pluginProps.get('username', None).strip()
         self.password = device.pluginProps.get('password', None).strip()
+        self.delay = int(device.pluginProps.get('delay', 0))
 
         self.logger.debug(f"{device.name}: Broker __init__ address = {self.address}, port = {self.port}, protocol = {self.protocol}, transport = {self.transport}")
 
@@ -65,15 +67,17 @@ class MQTTBroker(object):
         self.client.on_subscribe = self.on_subscribe
         self.client.on_unsubscribe = self.on_unsubscribe
 
+        threading.Timer(self.delay, lambda: self.do_connect(device)).start()
+
+    def do_connect(self, device):
+        self.logger.debug(f"{device.name}: do_connect")
         try:
             self.client.connect(self.address, self.port, 60)
         except Exception as e:
             self.logger.debug(f"{device.name}: Broker connect error: {e}")
             device.updateStateOnServer(key="status", value="Connection Failed")
             device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-            self.connected = False
         else:
-            self.connected = True
             self.client.loop_start()
 
     def disconnect(self):
@@ -123,7 +127,6 @@ class MQTTBroker(object):
         self.logger.error(f"{device.name}: Disconnected with result code {rc}")
         device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-        self.connected = False
 
     def on_message(self, client, userdata, msg):
         device = indigo.devices[self.deviceID]

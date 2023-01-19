@@ -61,7 +61,12 @@
             <Field id="certFileLabel" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="connect">
                 <Label>Non-absolute path (no leading slash) is relative to the Indigo install directory.</Label>
             </Field>
-
+           <Field id="delay" type="textfield" defaultValue="0" visibleBindingId="section" visibleBindingValue="connect">
+                <Label>Delay:</Label>
+            </Field>
+            <Field id="delay_note" type="label" fontColor="darkgray" visibleBindingId="section" visibleBindingValue="connect">
+                <Label>Delay starting this device.  Generally only used when this is an MQTT Broker device.</Label>
+            </Field>
             <!--  This section for managing topic subscriptions for this broker  -->
 
             <Field id="subscriptions_newTopic" type="textfield" visibleBindingId="section" visibleBindingValue="subscriptions" >
