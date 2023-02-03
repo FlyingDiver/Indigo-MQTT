@@ -840,7 +840,7 @@ class Plugin(indigo.PluginBase):
                 with open(path, 'rb') as fp:
                     try:
                         pl = plistlib.load(fp)
-                    except Exception as e:
+                    except Exception as err:
                         self.logger.warning(f"getPluginList: Unable to parse plist, skipping: {path}, err = {err}")
                     else:
                         bundleId = pl["CFBundleIdentifier"]
