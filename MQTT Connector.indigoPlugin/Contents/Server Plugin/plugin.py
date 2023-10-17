@@ -41,7 +41,7 @@ def make_dev_dict(device):
                 'deviceTypeId': device.deviceTypeId, 'model': device.model, 'subModel': device.subModel,
                 'protocol': device.protocol, 'states': []}
 
-    for key, value in device.states.iteritems():
+    for key, value in device.states.items():
         dev_data['states'].append({'name': key, 'value': value})
     dev_data['capabilities'] = []
     for key in dir(device):
@@ -406,6 +406,13 @@ class Plugin(indigo.PluginBase):
                                 self.logger.threaddebug(f"{trigger.name}: Match Failed: '{p[1]}' != '{topic_part}'")
                                 break
                             self.logger.threaddebug(f"{trigger.name}: Match OK: '{p[1]}' == '{topic_part}'")
+
+                        elif p[0] == "Regex":
+                            if not re.match(p[1], topic_part):
+                                is_match = False
+                                self.logger.threaddebug(f"{trigger.name}: Regex Match Failed: '{p[1]}' != '{topic_part}'")
+                                break
+                            self.logger.threaddebug(f"{trigger.name}: Regex Match OK: '{p[1]}' == '{topic_part}'")
 
                         else:
                             self.logger.warning(f"{trigger.name}: Unknown Match Type: {p[0]}")

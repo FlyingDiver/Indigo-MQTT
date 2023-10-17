@@ -40,12 +40,13 @@
                 <Label>Match Type:</Label>
         		<List>
         			<Option value="Match">Match</Option>
+        			<Option value="Regex">Regex Match</Option>
         			<Option value="Any">Any (wildcard)</Option>
         			<Option value="End">Topic Complete</Option>
         		</List>
         	</Field>
             <Field id="match_string" type="textfield" defaultValue="">
-                <Label>Match String:</Label>
+                <Label>Match String or Pattern:</Label>
             </Field>
             <Field id="add_match" type="button">
                 <Label/>
