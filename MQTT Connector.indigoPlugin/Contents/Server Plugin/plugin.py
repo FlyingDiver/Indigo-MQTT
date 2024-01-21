@@ -913,7 +913,7 @@ class Plugin(indigo.PluginBase):
     ########################################################################
 
     def fetchQueuedMessageAction(self, action, device, callerWaitingForResult):
-        self.logger.debug(f"{device.name}: fetchQueuedMessageAction, {dict(action.props)=}")
+        self.logger.threaddebug(f"{device.name}: fetchQueuedMessageAction, {dict(action.props)=}")
 
         messageType = action.props.get("message_type")
         if not messageType:
@@ -925,7 +925,7 @@ class Plugin(indigo.PluginBase):
             return None
 
         message = queue.get()
-        self.logger.debug(f"{device.name}: {message=}")
+        self.logger.threaddebug(f"{device.name}: {message=}")
         if action.props.get("message_encode", False):
             message['payload'] = base64.b64encode(message['payload'])
         return message
