@@ -1,4 +1,4 @@
 paho-mqtt==1.5.0
 pystache==0.6.0
 AWSIoTPythonSDK==1.4.8
-dxlclient==5.6.0.4
+# dxlclient==5.6.0.4
