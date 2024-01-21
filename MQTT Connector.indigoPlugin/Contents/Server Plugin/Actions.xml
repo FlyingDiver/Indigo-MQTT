@@ -138,7 +138,7 @@
     <Action id="fetchQueuedMessage" uiPath="hidden">
         <Name>Fetch Queued Message</Name>
         <CallbackMethod>fetchQueuedMessageAction</CallbackMethod>
-        <ConfigUI><Field id="fetch_messageType" type="textfield"/></ConfigUI>
+        <ConfigUI/>
     </Action>
     
 </Actions>
