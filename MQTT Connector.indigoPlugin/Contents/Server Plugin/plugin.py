@@ -8,6 +8,7 @@ import json
 import logging
 import pystache
 import re
+import base64
 
 from subprocess import PIPE, Popen
 from threading import Thread
@@ -79,7 +80,7 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
         self.aggregators = {}
-        self.queueDict = {}
+        self.message_queues = {}
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
@@ -292,7 +293,7 @@ class Plugin(indigo.PluginBase):
 
     def processReceivedMessage(self, devID, topic, payload):
         device = indigo.devices[devID]
-        self.logger.debug(f"{device.name}: processReceivedMessage: {topic}, payload: {payload}")
+        self.logger.debug(f"{device.name}: processReceivedMessage: {topic}")
 
         # check for topic aggregation
 
@@ -318,10 +319,9 @@ class Plugin(indigo.PluginBase):
         # Update broker states
         stateList = [
             {'key': 'last_topic', 'value': topic},
-            {'key': 'last_payload', 'value': payload}
+            {'key': 'last_payload', 'value': payload.decode("utf-8") if len(payload) < 512 else '...'},
         ]
         device.updateStatesOnServer(stateList)
-        self.logger.threaddebug(f"{device.name}: Saved states, topic: {topic}, payload: {payload}")
 
         # look for device or variable commands
 
@@ -422,7 +422,7 @@ class Plugin(indigo.PluginBase):
                     # here after all items in match_list have been checked, or a match failed
                     if is_match:
                         if trigger.pluginProps["queueMessage"]:
-                            self.queueMessage(device, trigger.pluginProps["message_type"])
+                            self.queueMessage(device, trigger.pluginProps["message_type"], topic, payload)
                         indigo.trigger.execute(trigger)
 
                 else:
@@ -890,20 +890,17 @@ class Plugin(indigo.PluginBase):
     # Queue waiting messages
     ########################################################################
 
-    def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
-        self.queueMessage(device, action.props["message_type"])
-
-    def queueMessage(self, device, messageType):
-        queue = self.queueDict.get(messageType, None)
+    def queueMessage(self, device, messageType, topic, payload):
+        queue = self.message_queues.get(messageType, None)
         if not queue:
             queue = Queue()
-            self.queueDict[messageType] = queue
+            self.message_queues[messageType] = queue
 
         message = {
             'version': 0,
             'message_type': messageType,
-            'topic_parts': splitall(device.states["last_topic"]),
-            'payload': device.states['last_payload']
+            'topic_parts': splitall(topic),
+            'payload': payload
         }
         queue.put(message)
         self.logger.threaddebug(f"{device.name}: queueMessage, queue = {messageType} ({queue.qsize()})")
@@ -916,12 +913,23 @@ class Plugin(indigo.PluginBase):
     ########################################################################
 
     def fetchQueuedMessageAction(self, action, device, callerWaitingForResult):
-        messageType = action.props["message_type"]
-        queue = self.queueDict.get(messageType, None)
+        self.logger.debug(f"{device.name}: fetchQueuedMessageAction, {dict(action.props)=}")
+
+        messageType = action.props.get("message_type")
+        if not messageType:
+            self.logger.error(f"{device.name}: fetchQueuedMessageAction, no message type")
+            return None
+
+        queue = self.message_queues.get(messageType)
         if not queue or queue.empty():
             return None
-        self.logger.threaddebug(f"{device.name}: fetchQueuedMessageAction, queue = {messageType} ({queue.qsize()})")
-        return queue.get()
+
+        message = queue.get()
+        self.logger.debug(f"{device.name}: {message=}")
+        if action.props.get("message_encode", False):
+            message['payload'] = base64.b64encode(message['payload'])
+        return message
+
 
     ########################################################################
 

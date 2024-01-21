@@ -130,9 +130,8 @@ class MQTTBroker(object):
 
     def on_message(self, client, userdata, msg):
         device = indigo.devices[self.deviceID]
-        payload = msg.payload.decode("utf-8")
-        self.logger.threaddebug(f"{device.name}: Message topic: {msg.topic}, payload = {payload}")
-        indigo.activePlugin.processReceivedMessage(self.deviceID, msg.topic, payload)
+        self.logger.threaddebug(f"{device.name}: on_message {msg.topic=}, {msg.payload=}")
+        indigo.activePlugin.processReceivedMessage(self.deviceID, msg.topic, msg.payload)
 
     def on_publish(self, client, userdata, mid):
         device = indigo.devices[self.deviceID]
