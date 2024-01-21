@@ -292,7 +292,7 @@ class Plugin(indigo.PluginBase):
 
     def processReceivedMessage(self, devID, topic, payload):
         device = indigo.devices[devID]
-        self.logger.debug(f"{device.name}: processReceivedMessage: {topic}, payload: {payload}")
+        self.logger.debug(f"{device.name}: processReceivedMessage: {topic}")
 
         # check for topic aggregation
 
@@ -318,10 +318,9 @@ class Plugin(indigo.PluginBase):
         # Update broker states
         stateList = [
             {'key': 'last_topic', 'value': topic},
-            {'key': 'last_payload', 'value': payload}
+            {'key': 'last_payload', 'value': payload.decode("utf-8") if len(payload) < 512 else '...'},
         ]
         device.updateStatesOnServer(stateList)
-        self.logger.threaddebug(f"{device.name}: Saved states, topic: {topic}, payload: {payload}")
 
         # look for device or variable commands
 
@@ -422,7 +421,7 @@ class Plugin(indigo.PluginBase):
                     # here after all items in match_list have been checked, or a match failed
                     if is_match:
                         if trigger.pluginProps["queueMessage"]:
-                            self.queueMessage(device, trigger.pluginProps["message_type"])
+                            self.queueMessage(device, trigger.pluginProps["message_type"], topic, payload)
                         indigo.trigger.execute(trigger)
 
                 else:
@@ -893,7 +892,7 @@ class Plugin(indigo.PluginBase):
     def queueMessageForDispatchAction(self, action, device, callerWaitingForResult):
         self.queueMessage(device, action.props["message_type"])
 
-    def queueMessage(self, device, messageType):
+    def queueMessage(self, device, messageType, topic, payload):
         queue = self.queueDict.get(messageType, None)
         if not queue:
             queue = Queue()
@@ -902,8 +901,8 @@ class Plugin(indigo.PluginBase):
         message = {
             'version': 0,
             'message_type': messageType,
-            'topic_parts': splitall(device.states["last_topic"]),
-            'payload': device.states['last_payload']
+            'topic_parts': splitall(topic),
+            'payload': payload
         }
         queue.put(message)
         self.logger.threaddebug(f"{device.name}: queueMessage, queue = {messageType} ({queue.qsize()})")
