@@ -6,6 +6,8 @@ import os
 import plistlib
 import json
 import logging
+import urllib.parse
+
 import pystache
 import re
 import base64
@@ -17,7 +19,7 @@ from queue import Queue, Empty
 from mqtt_broker import MQTTBroker
 from aiot_broker import AIoTBroker
 
-kCurDevVersCount = 0  # current version of plugin devices
+kCurDevVersCount = 1  # current version of plugin devices
 
 
 # normally used for file system paths, but will work for slash separated topics
@@ -198,6 +200,14 @@ class Plugin(indigo.PluginBase):
         elif instanceVers < kCurDevVersCount:
             newProps = device.pluginProps
             newProps["devVersCount"] = kCurDevVersCount
+
+            new_subs = list()
+            if 'subscriptions' in device.pluginProps:
+                for topic in device.pluginProps['subscriptions']:
+                    new_subs.append(urllib.parse.quote(topic))
+                newProps['subscriptions'] = new_subs
+                self.logger.debug(f"deviceStartComm: subscriptions updated to {new_subs=}")
+
             device.replacePluginPropsOnServer(newProps)
             self.logger.debug(f"{device.name}: Updated device version: {instanceVers} -> {kCurDevVersCount}")
         else:
@@ -458,25 +468,26 @@ class Plugin(indigo.PluginBase):
 
         if typeId == 'dxlBroker':
             if topic not in topicList:
-                topicList.append(topic)
+                topicList.append(urllib.parse.quote(topic))
 
         elif typeId == 'mqttBroker':
-            s = "{}:{}".format(qos, topic)
+            s = f"{qos}:{topic}"
             if s not in topicList:
-                topicList.append(s)
+                topicList.append(urllib.parse.quote(s))
 
         elif typeId == 'aIoTBroker':
-            s = "{}:{}".format(qos, topic)
+            s = f"{qos}:{topic}"
             if s not in topicList:
-                topicList.append(s)
+                topicList.append(urllib.parse.quote(s))
         else:
             self.logger.warning(f"addTopic: Invalid device type: {typeId} for device {deviceId}")
 
         valuesDict['subscriptions'] = topicList
         return valuesDict
 
-    @staticmethod
-    def deleteSubscriptions(valuesDict, typeId, deviceId):
+    def deleteSubscriptions(self, valuesDict, typeId, deviceId):
+        self.logger.debug(f"deleteSubscriptions: {list(valuesDict['subscriptions'])=}")
+        self.logger.debug(f"deleteSubscriptions: {list(valuesDict['subscriptions_items'])=}")
         topicList = list()
         if 'subscriptions' in valuesDict:
             for t in valuesDict['subscriptions']:
@@ -487,12 +498,22 @@ class Plugin(indigo.PluginBase):
         valuesDict['subscriptions'] = topicList
         return valuesDict
 
-    @staticmethod
-    def subscribedList(ifilter, valuesDict, typeId, deviceId):
+    def subscribedList(self, ifilter, valuesDict, typeId, deviceId):
         returnList = list()
         if 'subscriptions' in valuesDict:
             for topic in valuesDict['subscriptions']:
+                self.logger.debug(f"subscribedList: {topic=}")
                 returnList.append(topic)
+        self.logger.debug(f"subscribedList: {returnList=}")
+        return returnList
+
+    def subscribedListConfigUI(self, ifilter, valuesDict, typeId, deviceId):
+        returnList = list()
+        if 'subscriptions' in valuesDict:
+            for topic in valuesDict['subscriptions']:
+                self.logger.debug(f"subscribedListConfigUI: {topic=}")
+                returnList.append((topic, urllib.parse.unquote(topic)))
+        self.logger.debug(f"subscribedListConfigUI: {returnList=}")
         return returnList
 
     ########################################
@@ -590,8 +611,6 @@ class Plugin(indigo.PluginBase):
         if typeId == "mqttBroker":
             broker = self.brokers.get(deviceId, None)
 
-            # test the templates to make sure they return valid data
-
             # if the subscription list changes, calc changes and update the broker
 
             if 'subscriptions' not in valuesDict:
@@ -600,14 +619,16 @@ class Plugin(indigo.PluginBase):
                 valuesDict['old_subscriptions'] = indigo.List()
 
             # unsubscribe first in case the QoS changed
-            for s in valuesDict['old_subscriptions']:
-                if s not in valuesDict['subscriptions']:
+            for sub in valuesDict['old_subscriptions']:
+                if sub not in valuesDict['subscriptions']:
+                    s = urllib.parse.unquote(sub)
                     topic = s[2:]
                     if broker:
                         broker.unsubscribe(topic=topic)
 
-            for s in valuesDict['subscriptions']:
-                if s not in valuesDict['old_subscriptions']:
+            for sub in valuesDict['subscriptions']:
+                if sub not in valuesDict['old_subscriptions']:
+                    s = urllib.parse.unquote(sub)
                     qos = int(s[0:1])
                     topic = s[2:]
                     if broker:
@@ -929,7 +950,6 @@ class Plugin(indigo.PluginBase):
         if action.props.get("message_encode", False):
             message['payload'] = base64.b64encode(message['payload'])
         return message
-
 
     ########################################################################
 

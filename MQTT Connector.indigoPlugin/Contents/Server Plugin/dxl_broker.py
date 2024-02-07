@@ -5,6 +5,7 @@
 import time
 import logging
 import indigo
+import urllib.parse
 
 from dxlclient.client import DxlClient
 from dxlclient.client_config import DxlClientConfig
@@ -53,11 +54,11 @@ class DXLBroker(object):
         device.updateStateOnServer(key="status", value="Connected")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)            
 
-        subs = device.pluginProps.get(u'subscriptions', None)
-        if subs:
-            for topic in subs:
-                self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
-                self.logger.info(u"{}: Subscribing to: {}".format(device.name, topic))
+        if subs := device.pluginProps.get('subscriptions'):
+            for sub in subs:
+                s = urllib.parse.unquote(sub)
+                self.dxl_client.add_event_callback(s, self.MyEventCallback(self))
+                self.logger.info(f"{device.name}: Subscribing to: {s}")
             
     def disconnect(self):
         device = indigo.devices[self.deviceID]

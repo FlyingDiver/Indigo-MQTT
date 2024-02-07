@@ -91,7 +91,7 @@
             </Field>
            <Field id="subscriptions_items" type="list" rows="10" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label>Subscribed Topics:</Label>
-                <List class="self" method="subscribedList" dynamicReload="true"/>
+                <List class="self" method="subscribedListConfigUI" dynamicReload="true"/>
             </Field>
             <Field id="subscriptions_deleteSubscriptions" type="button" visibleBindingId="section" visibleBindingValue="subscriptions">
                 <Label/>

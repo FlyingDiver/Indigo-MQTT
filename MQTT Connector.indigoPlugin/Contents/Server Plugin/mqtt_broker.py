@@ -7,7 +7,7 @@ import logging
 import indigo
 import threading
 from os.path import exists
-
+import urllib.parse
 import paho.mqtt.client as mqtt
 
 
@@ -111,21 +111,21 @@ class MQTTBroker(object):
         self.logger.debug(f"{device.name}: Connected with result code {rc}")
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        subs = device.pluginProps.get('subscriptions', None)
-        if subs:
-            for s in subs:
+        if subs := device.pluginProps.get('subscriptions'):
+            for sub in subs:
+                s = urllib.parse.unquote(sub)
                 qos = int(s[0:1])
                 topic = s[2:]
                 self.logger.info(f"{device.name}: Subscribing to: {topic} ({qos})")
                 client.subscribe(topic, qos)
 
-        device.updateStateOnServer(key="status", value="Connected {}".format(rc))
+        device.updateStateOnServer(key="status", value=f"Connected {rc}")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
     def on_disconnect(self, client, userdata, rc):
         device = indigo.devices[self.deviceID]
         self.logger.error(f"{device.name}: Disconnected with result code {rc}")
-        device.updateStateOnServer(key="status", value="Disconnected {}".format(rc))
+        device.updateStateOnServer(key="status", value=f"Disconnected {rc}")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def on_message(self, client, userdata, msg):
