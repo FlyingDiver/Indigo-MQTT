@@ -93,7 +93,7 @@ class Plugin(indigo.PluginBase):
         self.plugin_file_handler.setLevel(self.logLevel)
         self.logger.debug(f"MQTT Connector: logLevel = {self.logLevel}")
 
-        self.queueWarning = int(pluginPrefs.get("queueWarning", "30"))
+        self.queueWarning = max(1, int(pluginPrefs.get("queueWarning", "30")))
         self.logger.debug(f"MQTT Connector: queueWarning value = {self.queueWarning}")
 
         savedList = pluginPrefs.get("aggregators", None)
@@ -185,7 +185,7 @@ class Plugin(indigo.PluginBase):
             self.indigo_log_handler.setLevel(self.logLevel)
             self.plugin_file_handler.setLevel(self.logLevel)
             self.logger.debug(f"MQTT Connector: logLevel = {self.logLevel}")
-            self.queueWarning = int(valuesDict.get("queueWarning", 30))
+            self.queueWarning = max(1, int(valuesDict.get("queueWarning", 30)))
 
     ########################################
     # Device Management Methods
@@ -949,10 +949,13 @@ class Plugin(indigo.PluginBase):
             return None
 
         queue = self.message_queues.get(messageType)
-        if not queue or queue.empty():
+        if not queue:
             return None
 
-        message = queue.get()
+        try:
+            message = queue.get_nowait()
+        except Empty:
+            return None
         self.logger.threaddebug(f"{device.name}: {message=}")
         if action.props.get("message_encode", False):
             message['payload'] = base64.b64encode(message['payload'])
