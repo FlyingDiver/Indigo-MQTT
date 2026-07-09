@@ -29,8 +29,10 @@ class DXLBroker(object):
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.DXLBroker")
+        self.device = device
         self.deviceID = device.id
-    
+        self.callbacks = {}
+
         address = device.pluginProps.get(u'address', "")
         port = device.pluginProps.get(u'port', "")
         ca_bundle = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get(u'ca_bundle', "")
@@ -57,7 +59,9 @@ class DXLBroker(object):
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
                 s = urllib.parse.unquote(sub)
-                self.dxl_client.add_event_callback(s, self.MyEventCallback(self))
+                callback = self.MyEventCallback(self)
+                self.callbacks[s] = callback
+                self.dxl_client.add_event_callback(s, callback)
                 self.logger.info(f"{device.name}: Subscribing to: {s}")
             
     def disconnect(self):
@@ -75,9 +79,16 @@ class DXLBroker(object):
     def subscribe(self, topic):
         device = indigo.devices[self.deviceID]
         self.logger.info(f"{device.name}: Subscribing to: {topic}")
-        self.dxl_client.add_event_callback(topic, self.MyEventCallback(self))
+        if topic in self.callbacks:
+            self.dxl_client.remove_event_callback(topic, self.callbacks[topic])
+        callback = self.MyEventCallback(self)
+        self.callbacks[topic] = callback
+        self.dxl_client.add_event_callback(topic, callback)
 
     def unsubscribe(self, topic):
         device = indigo.devices[self.deviceID]
         self.logger.info(f"{device.name}: Unsubscribing from: {topic}")
         self.dxl_client.unsubscribe(topic)
+        callback = self.callbacks.pop(topic, None)
+        if callback:
+            self.dxl_client.remove_event_callback(topic, callback)
