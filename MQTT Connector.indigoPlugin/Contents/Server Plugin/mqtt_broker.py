@@ -111,8 +111,8 @@ class MQTTBroker(object):
         self.logger.debug(f"{device.name}: Connected with result code {rc}")
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        if subs := device.pluginProps.get('subscriptions'):
-            for sub in subs:
+        if subscriptions    := device.pluginProps.get('subscriptions'):
+            for sub in subscriptions:
                 s = urllib.parse.unquote(sub)
                 qos = int(s[0:1])
                 topic = s[2:]
