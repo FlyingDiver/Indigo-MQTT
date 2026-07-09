@@ -15,12 +15,7 @@ class AIoTBroker(object):
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.aIoTBroker")
-        self.logger.setLevel(logging.DEBUG)
-        streamHandler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        streamHandler.setFormatter(formatter)
-        self.logger.addHandler(streamHandler)
-        
+
         self.deviceID = device.id
     
         address = device.pluginProps.get('address', "")
