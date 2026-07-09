@@ -1,0 +1,32 @@
+/paho.mqtt.python-master
+/.gitignore
+*.pyc
+/https--github.com-eclipse-paho.mqtt.python.webloc
+/mosquitto-1.6.4
+/pystache-master
+/mosquitto
+*.webloc
+/MQTT messages.txt
+/Sonoff
+/Hardware
+/MQTT Connector.indigoPlugin.zip
+/dxlclient
+/paho.mqtt.python
+/pystache
+/aws-iot-device-sdk-python-master
+/connect_device_package.zip
+/basicPubSub
+/topic_test.py
+/send_shelly.py
+/Shelly Topics.txt
+/References
+
+.DS_Store
+
+MQTT Connector.indigoPlugin/.idea/
+
+.idea/
+
+fetchMessages.py
+
+MQTT Connector.indigoPlugin/Contents/Packages/
