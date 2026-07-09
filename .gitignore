@@ -30,3 +30,5 @@ MQTT Connector.indigoPlugin/.idea/
 fetchMessages.py
 
 MQTT Connector.indigoPlugin/Contents/Packages/
+
+.claude/
