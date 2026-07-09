@@ -260,7 +260,7 @@ class Plugin(indigo.PluginBase):
             if origDev.pluginProps.get('certFile', None) != newDev.pluginProps.get('certFile', None):
                 return True
 
-        elif newDev.deviceTypeId == "AIoTBroker":
+        elif newDev.deviceTypeId == "aIoTBroker":
             if origDev.pluginProps.get('address', None) != newDev.pluginProps.get('address', None):
                 return True
             if origDev.pluginProps.get('port', None) != newDev.pluginProps.get('port', None):
@@ -329,7 +329,7 @@ class Plugin(indigo.PluginBase):
         # Update broker states
         stateList = [
             {'key': 'last_topic', 'value': topic},
-            {'key': 'last_payload', 'value': payload.decode("utf-8") if len(payload) < 512 else '...'},
+            {'key': 'last_payload', 'value': payload.decode("utf-8", errors="replace") if len(payload) < 512 else '...'},
         ]
         device.updateStatesOnServer(stateList)
 
