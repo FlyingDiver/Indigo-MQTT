@@ -67,7 +67,8 @@ class MQTTBroker(object):
         self.client.on_subscribe = self.on_subscribe
         self.client.on_unsubscribe = self.on_unsubscribe
 
-        threading.Timer(self.delay, lambda: self.do_connect(device)).start()
+        self.connect_timer = threading.Timer(self.delay, lambda: self.do_connect(device))
+        self.connect_timer.start()
 
     def do_connect(self, device):
         self.logger.debug(f"{device.name}: do_connect")
@@ -81,6 +82,7 @@ class MQTTBroker(object):
             self.client.loop_start()
 
     def disconnect(self):
+        self.connect_timer.cancel()
         self.client.on_disconnect = None
         device = indigo.devices[self.deviceID]
         self.logger.info(f"{device.name}: Disconnecting")
