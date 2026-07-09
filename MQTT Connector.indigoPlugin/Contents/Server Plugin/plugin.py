@@ -919,10 +919,7 @@ class Plugin(indigo.PluginBase):
     ########################################################################
 
     def queueMessage(self, device, messageType, topic, payload):
-        queue = self.message_queues.get(messageType, None)
-        if not queue:
-            queue = Queue(maxsize=self.queueWarning * 10)
-            self.message_queues[messageType] = queue
+        queue = self.message_queues.setdefault(messageType, Queue(maxsize=self.queueWarning * 10))
 
         message = {
             'version': 0,

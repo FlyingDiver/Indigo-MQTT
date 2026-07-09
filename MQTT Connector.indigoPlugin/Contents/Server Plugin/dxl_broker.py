@@ -23,13 +23,13 @@ class DXLBroker(object):
             self.broker = broker
 
         def on_event(self, event):
+            device = indigo.devices[self.broker.deviceID]
             self.broker.logger.threaddebug(
-                f"{self.broker.device.name}: Message {event.message_id} ({event.message_type}), received: {event.destination_topic}, payload: {event.payload}")
-            indigo.activePlugin.processReceivedMessage(self.broker.device.id, event.destination_topic, event.payload)
+                f"{device.name}: Message {event.message_id} ({event.message_type}), received: {event.destination_topic}, payload: {event.payload}")
+            indigo.activePlugin.processReceivedMessage(device.id, event.destination_topic, event.payload)
 
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.DXLBroker")
-        self.device = device
         self.deviceID = device.id
         self.callbacks = {}
 
