@@ -914,7 +914,7 @@ class Plugin(indigo.PluginBase):
     def queueMessage(self, device, messageType, topic, payload):
         queue = self.message_queues.get(messageType, None)
         if not queue:
-            queue = Queue()
+            queue = Queue(maxsize=self.queueWarning * 10)
             self.message_queues[messageType] = queue
 
         message = {
@@ -923,6 +923,9 @@ class Plugin(indigo.PluginBase):
             'topic_parts': splitall(topic),
             'payload': payload
         }
+        if queue.full():
+            dropped = queue.get_nowait()
+            self.logger.error(f"{device.name}: Queue for message type '{messageType}' is full ({queue.maxsize}), dropping oldest message: {dropped}")
         queue.put(message)
         self.logger.threaddebug(f"{device.name}: queueMessage, queue = {messageType} ({queue.qsize()})")
         indigo.server.broadcastToSubscribers("com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type': messageType, 'brokerID': device.id})
