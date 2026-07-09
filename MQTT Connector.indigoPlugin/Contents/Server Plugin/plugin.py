@@ -57,6 +57,22 @@ def make_var_dict(variable):
     return {'name': variable.name, 'variableId': variable.id, 'value': variable.value}
 
 
+# DXL subscriptions are stored as a bare quoted topic; mqtt/aIoT subscriptions are stored
+# as a quoted "qos:topic" string. These two helpers are the single place that format is
+# encoded/decoded, instead of every call site re-deriving it.
+def encode_subscription(deviceTypeId, topic, qos=0):
+    if deviceTypeId == 'dxlBroker':
+        return urllib.parse.quote(topic)
+    return urllib.parse.quote(f"{qos}:{topic}")
+
+
+def decode_subscription(deviceTypeId, entry):
+    s = urllib.parse.unquote(entry)
+    if deviceTypeId == 'dxlBroker':
+        return None, s
+    return int(s[0:1]), s[2:]
+
+
 def deep_merge_dicts(original, incoming):
     """
     Deep merge two dictionaries. Modifies original.
@@ -467,15 +483,13 @@ class Plugin(indigo.PluginBase):
             for t in valuesDict['subscriptions']:
                 topicList.append(t)
 
-        if typeId == 'dxlBroker':
-            quoted = urllib.parse.quote(topic)
-        elif typeId in ('mqttBroker', 'aIoTBroker'):
-            quoted = urllib.parse.quote(f"{qos}:{topic}")
-        else:
-            quoted = None
+        if typeId not in ('dxlBroker', 'mqttBroker', 'aIoTBroker'):
             self.logger.warning(f"addTopic: Invalid device type: {typeId} for device {deviceId}")
+            valuesDict['subscriptions'] = topicList
+            return valuesDict
 
-        if quoted is not None and quoted not in topicList:
+        quoted = encode_subscription(typeId, topic, qos)
+        if quoted not in topicList:
             topicList.append(quoted)
 
         valuesDict['subscriptions'] = topicList
@@ -617,16 +631,13 @@ class Plugin(indigo.PluginBase):
             # unsubscribe first in case the QoS changed
             for sub in valuesDict['old_subscriptions']:
                 if sub not in valuesDict['subscriptions']:
-                    s = urllib.parse.unquote(sub)
-                    topic = s[2:]
+                    _, topic = decode_subscription(typeId, sub)
                     if broker:
                         broker.unsubscribe(topic=topic)
 
             for sub in valuesDict['subscriptions']:
                 if sub not in valuesDict['old_subscriptions']:
-                    s = urllib.parse.unquote(sub)
-                    qos = int(s[0:1])
-                    topic = s[2:]
+                    qos, topic = decode_subscription(typeId, sub)
                     if broker:
                         broker.subscribe(topic=topic, qos=qos)
 
@@ -656,12 +667,14 @@ class Plugin(indigo.PluginBase):
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
                     if broker:
-                        broker.unsubscribe(topic=urllib.parse.unquote(s))
+                        _, topic = decode_subscription(typeId, s)
+                        broker.unsubscribe(topic=topic)
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
                     if broker:
-                        broker.subscribe(topic=urllib.parse.unquote(s))
+                        _, topic = decode_subscription(typeId, s)
+                        broker.subscribe(topic=topic)
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
 
@@ -680,14 +693,13 @@ class Plugin(indigo.PluginBase):
             # unsubscribe first in case the QoS changed
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
-                    topic = s[2:]
+                    _, topic = decode_subscription(typeId, s)
                     if broker:
                         broker.unsubscribe(topic=topic)
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
-                    qos = int(s[0:1])
-                    topic = s[2:]
+                    qos, topic = decode_subscription(typeId, s)
                     if broker:
                         broker.subscribe(topic=topic, qos=qos)
 
@@ -748,10 +760,11 @@ class Plugin(indigo.PluginBase):
         device = indigo.devices[int(valuesDict["brokerID"])]
         self.logger.info(f"{device.name}: Current topic subscriptions:")
         for sub in device.pluginProps['subscriptions']:
-            s = urllib.parse.unquote(sub)
-            qos = int(s[0:1])
-            topic = s[2:]
-            self.logger.info(f"{device.name}: {topic} ({qos})")
+            qos, topic = decode_subscription(device.deviceTypeId, sub)
+            if qos is None:
+                self.logger.info(f"{device.name}: {topic}")
+            else:
+                self.logger.info(f"{device.name}: {topic} ({qos})")
         return True
 
     # doesn't do anything, just needed to force other menus to dynamically refresh
@@ -812,10 +825,7 @@ class Plugin(indigo.PluginBase):
         broker.subscribe(topic=topic, qos=qos)
         self.logger.debug(f"{device.name}: addSubscription {topic} ({qos})")
 
-        if device.deviceTypeId == 'dxlBroker':
-            s = urllib.parse.quote(topic)
-        else:
-            s = urllib.parse.quote(f"{qos}:{topic}")
+        s = encode_subscription(device.deviceTypeId, topic, qos)
 
         updatedPluginProps = device.pluginProps
         if 'subscriptions' not in updatedPluginProps:
@@ -840,8 +850,7 @@ class Plugin(indigo.PluginBase):
             return
         subList = updatedPluginProps[u'subscriptions']
         for sub in subList:
-            s = urllib.parse.unquote(sub)
-            sub_topic = s if device.deviceTypeId == 'dxlBroker' else s[2:]
+            _, sub_topic = decode_subscription(device.deviceTypeId, sub)
             if sub_topic == topic:
                 subList.remove(sub)
                 updatedPluginProps[u'subscriptions'] = subList
