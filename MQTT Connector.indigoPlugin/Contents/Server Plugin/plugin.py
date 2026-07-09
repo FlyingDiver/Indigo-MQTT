@@ -13,8 +13,8 @@ import re
 import base64
 
 from subprocess import PIPE, Popen
-from threading import Thread
-from queue import Queue, Empty, Full
+from threading import Thread, Lock
+from queue import Queue, Empty
 
 from mqtt_broker import MQTTBroker
 from aiot_broker import AIoTBroker
@@ -83,6 +83,7 @@ class Plugin(indigo.PluginBase):
 
         self.aggregators = {}
         self.message_queues = {}
+        self.queue_lock = Lock()
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
@@ -913,24 +914,21 @@ class Plugin(indigo.PluginBase):
     ########################################################################
 
     def queueMessage(self, device, messageType, topic, payload):
-        queue = self.message_queues.setdefault(messageType, Queue(maxsize=self.queueWarning * 10))
-
         message = {
             'version': 0,
             'message_type': messageType,
             'topic_parts': splitall(topic),
             'payload': payload
         }
-        while True:
-            try:
-                queue.put_nowait(message)
-                break
-            except Full:
-                try:
-                    dropped = queue.get_nowait()
-                    self.logger.error(f"{device.name}: Queue for message type '{messageType}' is full ({queue.maxsize}), dropping oldest message: {dropped}")
-                except Empty:
-                    pass
+        with self.queue_lock:
+            queue = self.message_queues.get(messageType)
+            if queue is None:
+                queue = Queue(maxsize=self.queueWarning * 10)
+                self.message_queues[messageType] = queue
+            if queue.full():
+                dropped = queue.get_nowait()
+                self.logger.error(f"{device.name}: Queue for message type '{messageType}' is full ({queue.maxsize}), dropping oldest message: {dropped}")
+            queue.put_nowait(message)
         self.logger.threaddebug(f"{device.name}: queueMessage, queue = {messageType} ({queue.qsize()})")
         indigo.server.broadcastToSubscribers("com.flyingdiver.indigoplugin.mqtt-message_queued", {'message_type': messageType, 'brokerID': device.id})
         if queue.qsize() > self.queueWarning:
