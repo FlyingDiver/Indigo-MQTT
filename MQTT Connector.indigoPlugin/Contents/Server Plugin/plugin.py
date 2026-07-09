@@ -468,20 +468,14 @@ class Plugin(indigo.PluginBase):
 
         if typeId == 'dxlBroker':
             quoted = urllib.parse.quote(topic)
-            if quoted not in topicList:
-                topicList.append(quoted)
-
-        elif typeId == 'mqttBroker':
+        elif typeId in ('mqttBroker', 'aIoTBroker'):
             quoted = urllib.parse.quote(f"{qos}:{topic}")
-            if quoted not in topicList:
-                topicList.append(quoted)
-
-        elif typeId == 'aIoTBroker':
-            quoted = urllib.parse.quote(f"{qos}:{topic}")
-            if quoted not in topicList:
-                topicList.append(quoted)
         else:
+            quoted = None
             self.logger.warning(f"addTopic: Invalid device type: {typeId} for device {deviceId}")
+
+        if quoted is not None and quoted not in topicList:
+            topicList.append(quoted)
 
         valuesDict['subscriptions'] = topicList
         return valuesDict

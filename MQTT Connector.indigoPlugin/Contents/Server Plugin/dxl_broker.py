@@ -58,11 +58,7 @@ class DXLBroker(object):
 
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
-                s = urllib.parse.unquote(sub)
-                callback = self.MyEventCallback(self)
-                self.callbacks[s] = callback
-                self.dxl_client.add_event_callback(s, callback)
-                self.logger.info(f"{device.name}: Subscribing to: {s}")
+                self.subscribe(urllib.parse.unquote(sub))
             
     def disconnect(self):
         device = indigo.devices[self.deviceID]
