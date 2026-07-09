@@ -389,7 +389,7 @@ class Plugin(indigo.PluginBase):
                     comp_index = 0
                     is_match = True
                     for match in trigger.pluginProps['match_list']:
-                        p = match.split(": ")
+                        p = match.split(": ", 1)
                         self.logger.threaddebug(f"{trigger.name}: match.split = '{p[0]}' '{p[1]}'")
 
                         if p[0] == "End":
@@ -467,18 +467,19 @@ class Plugin(indigo.PluginBase):
                 topicList.append(t)
 
         if typeId == 'dxlBroker':
-            if topic not in topicList:
-                topicList.append(urllib.parse.quote(topic))
+            quoted = urllib.parse.quote(topic)
+            if quoted not in topicList:
+                topicList.append(quoted)
 
         elif typeId == 'mqttBroker':
-            s = f"{qos}:{topic}"
-            if s not in topicList:
-                topicList.append(urllib.parse.quote(s))
+            quoted = urllib.parse.quote(f"{qos}:{topic}")
+            if quoted not in topicList:
+                topicList.append(quoted)
 
         elif typeId == 'aIoTBroker':
-            s = f"{qos}:{topic}"
-            if s not in topicList:
-                topicList.append(urllib.parse.quote(s))
+            quoted = urllib.parse.quote(f"{qos}:{topic}")
+            if quoted not in topicList:
+                topicList.append(quoted)
         else:
             self.logger.warning(f"addTopic: Invalid device type: {typeId} for device {deviceId}")
 
@@ -660,12 +661,12 @@ class Plugin(indigo.PluginBase):
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
                     if broker:
-                        broker.unsubscribe(topic=s)
+                        broker.unsubscribe(topic=urllib.parse.unquote(s))
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
                     if broker:
-                        broker.subscribe(topic=s)
+                        broker.subscribe(topic=urllib.parse.unquote(s))
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
 
@@ -751,7 +752,8 @@ class Plugin(indigo.PluginBase):
     def printSubscriptionsMenu(self, valuesDict, typeId):
         device = indigo.devices[int(valuesDict["brokerID"])]
         self.logger.info(f"{device.name}: Current topic subscriptions:")
-        for s in device.pluginProps['subscriptions']:
+        for sub in device.pluginProps['subscriptions']:
+            s = urllib.parse.unquote(sub)
             qos = int(s[0:1])
             topic = s[2:]
             self.logger.info(f"{device.name}: {topic} ({qos})")
