@@ -18,15 +18,14 @@ class MQTTBroker(object):
     def __init__(self, device):
         self.logger = logging.getLogger("Plugin.MQTTBroker")
         self.deviceID = device.id
-        self.reconnectTime = None
 
         self.address = device.pluginProps.get('address', "")
         self.port = int(device.pluginProps.get('port', 1883))
         self.protocol = int(device.pluginProps.get('protocol', 4))
         self.transport = device.pluginProps.get('transport', "tcp")
 
-        self.username = device.pluginProps.get('username', None).strip()
-        self.password = device.pluginProps.get('password', None).strip()
+        self.username = device.pluginProps.get('username', "").strip()
+        self.password = device.pluginProps.get('password', "").strip()
         self.delay = int(device.pluginProps.get('delay', 0))
 
         self.logger.debug(f"{device.name}: Broker __init__ address = {self.address}, port = {self.port}, protocol = {self.protocol}, transport = {self.transport}")
@@ -37,7 +36,7 @@ class MQTTBroker(object):
         self.client = mqtt.Client(client_id=f"indigo-mqtt-{device.id}", clean_session=True, userdata=None, protocol=self.protocol, transport=self.transport)
         self.client.suppress_exceptions = True
 
-        if bool(indigo.activePlugin.pluginPrefs["showDebugInfo"]):
+        if bool(indigo.activePlugin.pluginPrefs.get("showDebugInfo", False)):
             self.logger.debug(f"{device.name}: Enabling library level debugging")
             self.client.enable_logger(self.logger)
 
@@ -111,6 +110,13 @@ class MQTTBroker(object):
 
     def on_connect(self, client, userdata, flags, rc):
         device = indigo.devices[self.deviceID]
+        if rc != 0:
+            # broker refused the connection (bad credentials, not authorized, etc.)
+            self.logger.error(f"{device.name}: Connection refused with result code {rc}: {mqtt.connack_string(rc)}")
+            device.updateStateOnServer(key="status", value=f"Refused {rc}")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+            return
+
         self.logger.debug(f"{device.name}: Connected with result code {rc}")
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.

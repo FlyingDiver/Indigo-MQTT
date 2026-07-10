@@ -17,9 +17,10 @@ class AIoTBroker(object):
         self.logger = logging.getLogger("Plugin.aIoTBroker")
 
         self.deviceID = device.id
-    
+        self.aIoTClient = None  # stays None if client creation below fails
+
         address = device.pluginProps.get('address', "")
-        port = int(device.pluginProps.get('port', ""))
+        port = int(device.pluginProps.get('port', 8883))
         ca_bundle = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('ca_bundle', "")
         cert_file = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('cert_file', "")
         private_key = indigo.server.getInstallFolderPath() + '/' + device.pluginProps.get('private_key', "")
@@ -29,46 +30,61 @@ class AIoTBroker(object):
         device.updateStateOnServer(key="status", value="Not Connected")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        try: 
-            self.aIoTClient = AWSIoTMQTTClient("indigo-mqtt-{}".format(device.id), useWebsocket=False)
-            self.aIoTClient.configureEndpoint(address, port)
-            self.aIoTClient.configureCredentials(ca_bundle, private_key, cert_file)
+        try:
+            client = AWSIoTMQTTClient("indigo-mqtt-{}".format(device.id), useWebsocket=False)
+            client.configureEndpoint(address, port)
+            client.configureCredentials(ca_bundle, private_key, cert_file)
 
-            self.aIoTClient.configureAutoReconnectBackoffTime(1, 64, 20)
-            self.aIoTClient.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
-            self.aIoTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
-            self.aIoTClient.configureConnectDisconnectTimeout(10)  # 10 sec
-            self.aIoTClient.configureMQTTOperationTimeout(5)  # 5 sec
+            client.configureAutoReconnectBackoffTime(1, 64, 20)
+            client.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
+            client.configureDrainingFrequency(2)  # Draining: 2 Hz
+            client.configureConnectDisconnectTimeout(10)  # 10 sec
+            client.configureMQTTOperationTimeout(5)  # 5 sec
 
-            self.aIoTClient.disableMetricsCollection()
+            client.disableMetricsCollection()
 
-            self.aIoTClient.onOnline  = self.onOnline
-            self.aIoTClient.onOffline = self.onOffline
-            self.aIoTClient.onMessage = self.onMessage
+            client.onOnline  = self.onOnline
+            client.onOffline = self.onOffline
+            client.onMessage = self.onMessage
 
-            self.aIoTClient.connectAsync(ackCallback=self.onConnect)
+            # assign before connectAsync: the onConnect ack callback uses self.aIoTClient
+            self.aIoTClient = client
+            client.connectAsync(ackCallback=self.onConnect)
 
         except (Exception,):
             self.logger.exception(f"{device.name}: Exception while creating Broker object")
+            self.aIoTClient = None
+            device.updateStateOnServer(key="status", value="Connection Failed")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def disconnect(self):
         device = indigo.devices[self.deviceID]
-        self.aIoTClient.disconnect()        
+        if self.aIoTClient:
+            self.aIoTClient.disconnect()
         device.updateStateOnServer(key="status", value="Not Connected")
-        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)              
-      
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+
     def publish(self, topic, payload=None, qos=0, retain=False):
         device = indigo.devices[self.deviceID]
+        if not self.aIoTClient:
+            self.logger.warning(f"{device.name}: Client not started, unable to publish to {topic}")
+            return
         self.logger.debug(u"{}: Publishing to: {} ({}), payload = {}".format(device.name, topic, qos, payload))
         self.aIoTClient.publishAsync(str(topic), str(payload), qos, ackCallback=self.onPublish)
 
     def subscribe(self, topic, qos=0):
         device = indigo.devices[self.deviceID]
+        if not self.aIoTClient:
+            self.logger.warning(f"{device.name}: Client not started, unable to subscribe to {topic}")
+            return
         self.logger.info(u"{}: Subscribing to: {} ({})".format(device.name, topic, qos))
         self.aIoTClient.subscribeAsync(str(topic), int(qos), ackCallback=self.onSubscribe)
 
     def unsubscribe(self, topic):
         device = indigo.devices[self.deviceID]
+        if not self.aIoTClient:
+            self.logger.warning(f"{device.name}: Client not started, unable to unsubscribe from {topic}")
+            return
         self.logger.info(u"{}: Unsubscribing from: {}".format(device.name, topic))
         self.aIoTClient.unsubscribeAsync(str(topic), ackCallback=self.onUnsubscribe)
 
@@ -97,10 +113,6 @@ class AIoTBroker(object):
         self.logger.debug(u"{}: Client is OffLine".format(device.name))
         device.updateStateOnServer(key="status", value="OffLine")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-
-    def onTopicMessage(self, client, userdata, msg):
-        device = indigo.devices[self.deviceID]
-        self.logger.debug(u"{}: onTopicMessage - client: {}, userdata: {} message: '{}', payload: {}".format(device.name, client, userdata, msg.topic, msg.payload))
 
     def onMessage(self, msg):
         device = indigo.devices[self.deviceID]

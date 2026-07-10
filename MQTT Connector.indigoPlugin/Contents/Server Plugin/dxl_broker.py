@@ -50,24 +50,34 @@ class DXLBroker(object):
         config = DxlClientConfig(broker_ca_bundle=ca_bundle, cert_file=cert_file, private_key=private_key, brokers=[broker])
  
         # Create the DXL client
-        self.dxl_client = DxlClient(config)   
+        self.dxl_client = DxlClient(config)
 
         # Connect to the fabric
-        self.dxl_client.connect()    
+        try:
+            self.dxl_client.connect()
+        except Exception as e:
+            self.logger.error(f"{device.name}: Broker connect error: {e}")
+            device.updateStateOnServer(key="status", value="Connection Failed")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+            return
+
         device.updateStateOnServer(key="status", value="Connected")
-        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)            
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
                 topic = decode_subscription_topic(device.deviceTypeId, sub)
                 self.subscribe(topic)
-            
+
     def disconnect(self):
         device = indigo.devices[self.deviceID]
-        self.dxl_client.disconnect()        
-        self.dxl_client.destroy()        
+        try:
+            self.dxl_client.disconnect()
+        except Exception as e:
+            self.logger.debug(f"{device.name}: Broker disconnect error: {e}")
+        self.dxl_client.destroy()
         device.updateStateOnServer(key="status", value="Not Connected")
-        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)      
+        device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
       
     def publish(self, topic, payload=None, qos=0, retain=False):
         event = Event(topic)
