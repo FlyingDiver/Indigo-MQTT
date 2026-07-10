@@ -12,7 +12,7 @@ from dxlclient.callbacks import EventCallback
 from dxlclient.broker import Broker
 from dxlclient.message import Event
 
-from subscription_format import decode_subscription
+from subscription_format import decode_subscription_topic
 
 
 ################################################################################
@@ -59,7 +59,7 @@ class DXLBroker(object):
 
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
-                _, topic = decode_subscription(device.deviceTypeId, sub)
+                topic = decode_subscription_topic(device.deviceTypeId, sub)
                 self.subscribe(topic)
             
     def disconnect(self):

@@ -18,7 +18,7 @@ from queue import Queue, Empty
 
 from mqtt_broker import MQTTBroker
 from aiot_broker import AIoTBroker
-from subscription_format import encode_subscription, decode_subscription
+from subscription_format import encode_subscription, decode_subscription, decode_subscription_topic
 
 kCurDevVersCount = 1  # current version of plugin devices
 
@@ -84,7 +84,8 @@ class Plugin(indigo.PluginBase):
 
         self.aggregators = {}
         self.message_queues = {}
-        self.queue_lock = Lock()
+        self.queue_locks = {}  # one Lock per message_type, so unrelated message_types don't contend
+        self.queue_locks_lock = Lock()  # guards creation of entries in queue_locks only
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
@@ -203,6 +204,10 @@ class Plugin(indigo.PluginBase):
             newProps = device.pluginProps
             newProps["devVersCount"] = kCurDevVersCount
 
+            # One-time migration of pre-quoting subscription data: each stored value here is
+            # the whole legacy entry (not yet split into topic/qos), so this intentionally
+            # re-quotes it directly rather than going through encode_subscription(), which
+            # needs topic and qos passed separately and would misparse this opaque value.
             new_subs = list()
             if 'subscriptions' in device.pluginProps:
                 for topic in device.pluginProps['subscriptions']:
@@ -503,6 +508,9 @@ class Plugin(indigo.PluginBase):
         return returnList
 
     def subscribedListConfigUI(self, ifilter, valuesDict, typeId, deviceId):
+        # Displays the whole decoded entry (e.g. "1:home/kitchen") as a single label rather
+        # than splitting out qos/topic, so this intentionally unquotes directly instead of
+        # going through decode_subscription(), which is for parsing components, not display.
         returnList = list()
         if 'subscriptions' in valuesDict:
             for topic in valuesDict['subscriptions']:
@@ -616,7 +624,7 @@ class Plugin(indigo.PluginBase):
             # unsubscribe first in case the QoS changed
             for sub in valuesDict['old_subscriptions']:
                 if sub not in valuesDict['subscriptions']:
-                    _, topic = decode_subscription(typeId, sub)
+                    topic = decode_subscription_topic(typeId, sub)
                     if broker:
                         broker.unsubscribe(topic=topic)
 
@@ -652,13 +660,13 @@ class Plugin(indigo.PluginBase):
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
                     if broker:
-                        _, topic = decode_subscription(typeId, s)
+                        topic = decode_subscription_topic(typeId, s)
                         broker.unsubscribe(topic=topic)
 
             for s in valuesDict['subscriptions']:
                 if s not in valuesDict['old_subscriptions']:
                     if broker:
-                        _, topic = decode_subscription(typeId, s)
+                        topic = decode_subscription_topic(typeId, s)
                         broker.subscribe(topic=topic)
 
             valuesDict['old_subscriptions'] = valuesDict['subscriptions']
@@ -678,7 +686,7 @@ class Plugin(indigo.PluginBase):
             # unsubscribe first in case the QoS changed
             for s in valuesDict['old_subscriptions']:
                 if s not in valuesDict['subscriptions']:
-                    _, topic = decode_subscription(typeId, s)
+                    topic = decode_subscription_topic(typeId, s)
                     if broker:
                         broker.unsubscribe(topic=topic)
 
@@ -835,7 +843,7 @@ class Plugin(indigo.PluginBase):
             return
         subList = updatedPluginProps[u'subscriptions']
         for sub in subList:
-            _, sub_topic = decode_subscription(device.deviceTypeId, sub)
+            sub_topic = decode_subscription_topic(device.deviceTypeId, sub)
             if sub_topic == topic:
                 subList.remove(sub)
                 updatedPluginProps[u'subscriptions'] = subList
@@ -907,6 +915,14 @@ class Plugin(indigo.PluginBase):
     # Queue waiting messages
     ########################################################################
 
+    def getQueueLock(self, messageType):
+        with self.queue_locks_lock:
+            lock = self.queue_locks.get(messageType)
+            if lock is None:
+                lock = Lock()
+                self.queue_locks[messageType] = lock
+            return lock
+
     def queueMessage(self, device, messageType, topic, payload):
         message = {
             'version': 0,
@@ -914,7 +930,7 @@ class Plugin(indigo.PluginBase):
             'topic_parts': splitall(topic),
             'payload': payload
         }
-        with self.queue_lock:
+        with self.getQueueLock(messageType):
             queue = self.message_queues.get(messageType)
             if queue is None:
                 queue = Queue(maxsize=self.queueWarning * 10)

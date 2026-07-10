@@ -25,6 +25,9 @@ Quick Start / user docs: https://github.com/FlyingDiver/Indigo-MQTT/wiki
   - `dxl_broker.py` (`DXLBroker`) — wraps McAfee/OpenDXL's `dxlclient`. Imported lazily/optionally in
     `plugin.py` (`try: from dxl_broker import DXLBroker`) since the `dxlclient` dependency is not bundled
     (see commented-out line in `requirements.txt`) — a DXL broker device will fail gracefully if it's absent.
+  - `subscription_format.py` — `encode_subscription()`/`decode_subscription()`, the single place the
+    per-broker-type subscription string format is implemented; imported by `plugin.py` and all three
+    broker modules (kept standalone to avoid a circular import with `plugin.py`).
   - `Devices.xml`, `Actions.xml`, `Events.xml`, `MenuItems.xml`, `PluginConfig.xml` — Indigo's declarative
     UI/config definitions. Field `method="..."` and callback attributes here map directly to method names
     on the `Plugin` class in `plugin.py` — when changing a callback's signature or name, update both sides.
@@ -64,11 +67,15 @@ variable equivalents) against a dict built by `make_dev_dict`/`make_var_dict`, a
 Actions (`publishMessageAction`, `publishDeviceAction`, `addSubscriptionAction`, `delSubscriptionAction`)
 in `Actions.xml`/`plugin.py` provide the same publish/subscribe operations as explicit Indigo actions.
 
-Subscriptions are stored as `qos:topic` strings, URL-quoted, in each broker device's `subscriptions`
-plugin prop list; `validateDeviceConfigUi` diffs `subscriptions` against `old_subscriptions` to
-incrementally subscribe/unsubscribe on the live broker connection when a device's config is saved, and
-each broker re-subscribes everything from `pluginProps['subscriptions']` on its own connect callback (so
-subscriptions survive reconnects).
+Subscriptions are stored as URL-quoted strings in each broker device's `subscriptions` plugin prop list:
+`qos:topic` for `mqttBroker`/`aIoTBroker` devices, and a bare quoted topic (no `qos:` prefix) for
+`dxlBroker` devices. `encode_subscription()`/`decode_subscription()` in `subscription_format.py` are the
+single source of truth for this format — every place that constructs or parses a subscription entry
+(in `plugin.py`, `mqtt_broker.py`, `aiot_broker.py`, `dxl_broker.py`) goes through them; don't
+hand-roll `urllib.parse.quote`/`unquote` at a new call site. `validateDeviceConfigUi` diffs
+`subscriptions` against `old_subscriptions` to incrementally subscribe/unsubscribe on the live broker
+connection when a device's config is saved, and each broker re-subscribes everything from
+`pluginProps['subscriptions']` on its own connect callback (so subscriptions survive reconnects).
 
 ## Working with this code
 

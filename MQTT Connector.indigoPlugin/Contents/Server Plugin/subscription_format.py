@@ -20,3 +20,8 @@ def decode_subscription(deviceTypeId, entry):
     if deviceTypeId == 'dxlBroker':
         return None, s
     return int(s[0:1]), s[2:]
+
+
+# convenience for the majority of call sites that only need the topic, not the qos
+def decode_subscription_topic(deviceTypeId, entry):
+    return decode_subscription(deviceTypeId, entry)[1]
