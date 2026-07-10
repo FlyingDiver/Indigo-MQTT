@@ -154,7 +154,12 @@ class Plugin(indigo.PluginBase):
 
             qos = int(brokerDevice.pluginProps.get("device_template_qos", 1))
             retain = bool(brokerDevice.pluginProps.get("device_template_retain", False))
-            broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+            # Isolate each broker: one broker's publish failing must not stop the others.
+            try:
+                broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+            except Exception:
+                self.logger.exception(f"{brokerDevice.name}: Error publishing device {newDevice.name}")
+                continue
             self.logger.threaddebug(f"{newDevice.name}: deviceUpdated: publishing device - payload = {payload}")
 
     def variableUpdated(self, origVariable, newVariable):
@@ -181,7 +186,12 @@ class Plugin(indigo.PluginBase):
 
                 qos = int(brokerDevice.pluginProps.get("variable_template_qos", 1))
                 retain = bool(brokerDevice.pluginProps.get("variable_template_retain", False))
-                broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+                # Isolate each broker: one broker's publish failing must not stop the others.
+                try:
+                    broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+                except Exception:
+                    self.logger.exception(f"{brokerDevice.name}: Error publishing variable {newVariable.name}")
+                    continue
                 self.logger.threaddebug(f"{newVariable.name}: deviceUpdated: publishing variable - payload = {payload}")
 
     ########################################
@@ -229,26 +239,38 @@ class Plugin(indigo.PluginBase):
         device.stateListOrDisplayStateIdChanged()
 
         if device.deviceTypeId == "mqttBroker":
-            self.brokers[device.id] = MQTTBroker(device)
-
+            broker_class = MQTTBroker
         elif device.deviceTypeId == "aIoTBroker":
-            self.brokers[device.id] = AIoTBroker(device)
-
+            broker_class = AIoTBroker
         elif device.deviceTypeId == "dxlBroker":
             try:
                 from dxl_broker import DXLBroker
             except ImportError:
                 self.logger.warning(f"{device.name}: OpenDXL Client library not installed, unable to start DXL Broker device")
-            else:
-                self.brokers[device.id] = DXLBroker(device)
-
+                return
+            broker_class = DXLBroker
         else:
             self.logger.warning(f"{device.name}: deviceStartComm: Invalid device type: {device.deviceTypeId}")
+            return
+
+        # Only register the broker if construction succeeds; a broker that raises here must not
+        # be left half-built in self.brokers, or deviceStopComm and the publish loops would
+        # later operate on a broken object.
+        try:
+            self.brokers[device.id] = broker_class(device)
+        except Exception:
+            self.logger.exception(f"{device.name}: Failed to start broker device")
+            device.updateStateOnServer(key="status", value="Start Failed")
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     def deviceStopComm(self, device):
         self.logger.info(f"{device.name}: Stopping Device")
-        self.brokers[device.id].disconnect()
-        del self.brokers[device.id]
+        broker = self.brokers.pop(device.id, None)
+        if broker:
+            try:
+                broker.disconnect()
+            except Exception:
+                self.logger.exception(f"{device.name}: Error while disconnecting broker")
         device.updateStateOnServer(key="status", value="Stopped")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
