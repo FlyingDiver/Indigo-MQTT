@@ -18,6 +18,7 @@ from queue import Queue, Empty
 
 from mqtt_broker import MQTTBroker
 from aiot_broker import AIoTBroker
+from subscription_format import encode_subscription, decode_subscription
 
 kCurDevVersCount = 1  # current version of plugin devices
 
@@ -55,22 +56,6 @@ def make_dev_dict(device):
 
 def make_var_dict(variable):
     return {'name': variable.name, 'variableId': variable.id, 'value': variable.value}
-
-
-# DXL subscriptions are stored as a bare quoted topic; mqtt/aIoT subscriptions are stored
-# as a quoted "qos:topic" string. These two helpers are the single place that format is
-# encoded/decoded, instead of every call site re-deriving it.
-def encode_subscription(deviceTypeId, topic, qos=0):
-    if deviceTypeId == 'dxlBroker':
-        return urllib.parse.quote(topic)
-    return urllib.parse.quote(f"{qos}:{topic}")
-
-
-def decode_subscription(deviceTypeId, entry):
-    s = urllib.parse.unquote(entry)
-    if deviceTypeId == 'dxlBroker':
-        return None, s
-    return int(s[0:1]), s[2:]
 
 
 def deep_merge_dicts(original, incoming):

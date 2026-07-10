@@ -7,8 +7,9 @@ import logging
 import indigo
 import threading
 from os.path import exists
-import urllib.parse
 import paho.mqtt.client as mqtt
+
+from subscription_format import decode_subscription
 
 
 ################################################################################
@@ -113,11 +114,9 @@ class MQTTBroker(object):
         self.logger.debug(f"{device.name}: Connected with result code {rc}")
 
         # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-        if subscriptions    := device.pluginProps.get('subscriptions'):
+        if subscriptions := device.pluginProps.get('subscriptions'):
             for sub in subscriptions:
-                s = urllib.parse.unquote(sub)
-                qos = int(s[0:1])
-                topic = s[2:]
+                qos, topic = decode_subscription(device.deviceTypeId, sub)
                 self.logger.info(f"{device.name}: Subscribing to: {topic} ({qos})")
                 client.subscribe(topic, qos)
 

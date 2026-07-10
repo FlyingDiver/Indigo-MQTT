@@ -5,13 +5,14 @@
 import time
 import logging
 import indigo
-import urllib.parse
 
 from dxlclient.client import DxlClient
 from dxlclient.client_config import DxlClientConfig
 from dxlclient.callbacks import EventCallback
 from dxlclient.broker import Broker
 from dxlclient.message import Event
+
+from subscription_format import decode_subscription
 
 
 ################################################################################
@@ -58,7 +59,8 @@ class DXLBroker(object):
 
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
-                self.subscribe(urllib.parse.unquote(sub))
+                _, topic = decode_subscription(device.deviceTypeId, sub)
+                self.subscribe(topic)
             
     def disconnect(self):
         device = indigo.devices[self.deviceID]

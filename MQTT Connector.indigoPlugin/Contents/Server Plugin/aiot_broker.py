@@ -5,9 +5,9 @@
 import time
 import logging
 import indigo
-import urllib.parse
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from subscription_format import decode_subscription
 
 
 ################################################################################
@@ -85,9 +85,7 @@ class AIoTBroker(object):
         # Subscribing in onConnect() means that if we lose the connection and reconnect then subscriptions will be renewed.
         if subs := device.pluginProps.get('subscriptions'):
             for sub in subs:
-                s = urllib.parse.unquote(sub)
-                qos = int(s[0:1])
-                topic = s[2:]
+                qos, topic = decode_subscription(device.deviceTypeId, sub)
                 self.subscribe(topic, qos)
             
     def onOnline(self):
