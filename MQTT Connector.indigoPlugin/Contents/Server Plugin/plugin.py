@@ -7,6 +7,7 @@ import plistlib
 import json
 import logging
 import urllib.parse
+from collections import defaultdict
 
 import pystache
 import re
@@ -84,8 +85,7 @@ class Plugin(indigo.PluginBase):
 
         self.aggregators = {}
         self.message_queues = {}
-        self.queue_locks = {}  # one Lock per message_type, so unrelated message_types don't contend
-        self.queue_locks_lock = Lock()  # guards creation of entries in queue_locks only
+        self.queue_locks = defaultdict(Lock)  # one Lock per message_type, so unrelated message_types don't contend
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
@@ -915,14 +915,6 @@ class Plugin(indigo.PluginBase):
     # Queue waiting messages
     ########################################################################
 
-    def getQueueLock(self, messageType):
-        with self.queue_locks_lock:
-            lock = self.queue_locks.get(messageType)
-            if lock is None:
-                lock = Lock()
-                self.queue_locks[messageType] = lock
-            return lock
-
     def queueMessage(self, device, messageType, topic, payload):
         message = {
             'version': 0,
@@ -930,7 +922,7 @@ class Plugin(indigo.PluginBase):
             'topic_parts': splitall(topic),
             'payload': payload
         }
-        with self.getQueueLock(messageType):
+        with self.queue_locks[messageType]:
             queue = self.message_queues.get(messageType)
             if queue is None:
                 queue = Queue(maxsize=self.queueWarning * 10)
@@ -956,6 +948,9 @@ class Plugin(indigo.PluginBase):
             self.logger.error(f"{device.name}: fetchQueuedMessageAction, no message type")
             return None
 
+        # Intentionally not using queue_locks here: this only reads message_queues (never
+        # creates/mutates the dict) and Queue.get_nowait() is already internally synchronized,
+        # so no additional locking is needed for this consumer-side path.
         queue = self.message_queues.get(messageType)
         if not queue:
             return None

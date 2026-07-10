@@ -69,10 +69,13 @@ in `Actions.xml`/`plugin.py` provide the same publish/subscribe operations as ex
 
 Subscriptions are stored as URL-quoted strings in each broker device's `subscriptions` plugin prop list:
 `qos:topic` for `mqttBroker`/`aIoTBroker` devices, and a bare quoted topic (no `qos:` prefix) for
-`dxlBroker` devices. `encode_subscription()`/`decode_subscription()` in `subscription_format.py` are the
-single source of truth for this format — every place that constructs or parses a subscription entry
-(in `plugin.py`, `mqtt_broker.py`, `aiot_broker.py`, `dxl_broker.py`) goes through them; don't
-hand-roll `urllib.parse.quote`/`unquote` at a new call site. `validateDeviceConfigUi` diffs
+`dxlBroker` devices. `subscription_format.py` is the single source of truth for this format:
+`encode_subscription()` (only ever needed in `plugin.py`, since that's the only place new subscription
+entries are constructed), `decode_subscription()` (returns `(qos, topic)`, `qos` is `None` for
+`dxlBroker`), and `decode_subscription_topic()` (the common case — just the topic). Every place that
+constructs or parses a subscription entry (in `plugin.py`, `mqtt_broker.py`, `aiot_broker.py`,
+`dxl_broker.py`) goes through one of these three; don't hand-roll `urllib.parse.quote`/`unquote` at a
+new call site. `validateDeviceConfigUi` diffs
 `subscriptions` against `old_subscriptions` to incrementally subscribe/unsubscribe on the live broker
 connection when a device's config is saved, and each broker re-subscribes everything from
 `pluginProps['subscriptions']` on its own connect callback (so subscriptions survive reconnects).
