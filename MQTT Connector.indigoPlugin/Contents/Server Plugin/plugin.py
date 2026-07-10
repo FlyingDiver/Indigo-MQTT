@@ -266,11 +266,14 @@ class Plugin(indigo.PluginBase):
     def deviceStopComm(self, device):
         self.logger.info(f"{device.name}: Stopping Device")
         broker = self.brokers.pop(device.id, None)
-        if broker:
-            try:
-                broker.disconnect()
-            except Exception:
-                self.logger.exception(f"{device.name}: Error while disconnecting broker")
+        if not broker:
+            # Never registered (construction/start failed), so leave the existing error
+            # state in place rather than overwriting it with a misleading "Stopped".
+            return
+        try:
+            broker.disconnect()
+        except Exception:
+            self.logger.exception(f"{device.name}: Error while disconnecting broker")
         device.updateStateOnServer(key="status", value="Stopped")
         device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
@@ -798,7 +801,10 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def publishMessageAction(self, pluginAction, brokerDevice, callerWaitingForResult):
-        broker = self.brokers[brokerDevice.id]
+        broker = self.brokers.get(brokerDevice.id)
+        if not broker:
+            self.logger.warning(f"{brokerDevice.name}: Broker not started, unable to publish message")
+            return
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         payload = indigo.activePlugin.substitute(pluginAction.props["payload"])
         qos = int(pluginAction.props["qos"])
@@ -807,7 +813,10 @@ class Plugin(indigo.PluginBase):
         broker.publish(topic=topic, payload=payload, qos=qos, retain=retain)
 
     def publishDeviceAction(self, pluginAction, brokerDevice, callerWaitingForResult):
-        broker = self.brokers[brokerDevice.id]
+        broker = self.brokers.get(brokerDevice.id)
+        if not broker:
+            self.logger.warning(f"{brokerDevice.name}: Broker not started, unable to publish device data")
+            return
         topic = indigo.activePlugin.substitute(pluginAction.props["topic"])
         qos = int(pluginAction.props["qos"])
         retain = int(pluginAction.props["retain"])
@@ -841,8 +850,11 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def addSubscription(self, brokerID, topic, qos):
-        broker = self.brokers[brokerID]
         device = indigo.devices[int(brokerID)]
+        broker = self.brokers.get(brokerID)
+        if not broker:
+            self.logger.warning(f"{device.name}: Broker not started, unable to add subscription {topic}")
+            return
         broker.subscribe(topic=topic, qos=qos)
         self.logger.debug(f"{device.name}: addSubscription {topic} ({qos})")
 
@@ -860,8 +872,11 @@ class Plugin(indigo.PluginBase):
         device.replacePluginPropsOnServer(updatedPluginProps)
 
     def delSubscription(self, brokerID, topic):
-        broker = self.brokers[brokerID]
         device = indigo.devices[int(brokerID)]
+        broker = self.brokers.get(brokerID)
+        if not broker:
+            self.logger.warning(f"{device.name}: Broker not started, unable to remove subscription {topic}")
+            return
         broker.unsubscribe(topic=topic)
         self.logger.debug(u"{}: delSubscription {}".format(device.name, topic))
 
