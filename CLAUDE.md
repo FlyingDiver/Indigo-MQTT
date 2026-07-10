@@ -25,9 +25,9 @@ Quick Start / user docs: https://github.com/FlyingDiver/Indigo-MQTT/wiki
   - `dxl_broker.py` (`DXLBroker`) — wraps McAfee/OpenDXL's `dxlclient`. Imported lazily/optionally in
     `plugin.py` (`try: from dxl_broker import DXLBroker`) since the `dxlclient` dependency is not bundled
     (see commented-out line in `requirements.txt`) — a DXL broker device will fail gracefully if it's absent.
-  - `subscription_format.py` — `encode_subscription()`/`decode_subscription()`, the single place the
-    per-broker-type subscription string format is implemented; imported by `plugin.py` and all three
-    broker modules (kept standalone to avoid a circular import with `plugin.py`).
+  - `subscription_format.py` — the single place the per-broker-type subscription string format is
+    implemented (see the Architecture section for the three functions and who imports what); kept
+    standalone so the broker modules can import it without a circular import through `plugin.py`.
   - `Devices.xml`, `Actions.xml`, `Events.xml`, `MenuItems.xml`, `PluginConfig.xml` — Indigo's declarative
     UI/config definitions. Field `method="..."` and callback attributes here map directly to method names
     on the `Plugin` class in `plugin.py` — when changing a callback's signature or name, update both sides.

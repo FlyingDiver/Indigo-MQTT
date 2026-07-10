@@ -85,7 +85,13 @@ class Plugin(indigo.PluginBase):
 
         self.aggregators = {}
         self.message_queues = {}
-        self.queue_locks = defaultdict(Lock)  # one Lock per message_type, so unrelated message_types don't contend
+        # One Lock per message_type, so unrelated message_types don't contend. The defaultdict
+        # is load-bearing for thread safety: CPython's GIL makes dict.__missing__ (lookup +
+        # Lock() + insert, all C-level) atomic, so racing threads always get the same Lock for
+        # a new key. That's a CPython implementation detail, not a language guarantee — don't
+        # replace this with a plain dict + setdefault-style creation without adding an explicit
+        # creation lock (and it would need rework under a free-threaded/no-GIL Python).
+        self.queue_locks = defaultdict(Lock)
         self.triggers = {}
         self.brokers = {}  # Dict of Indigo MQTT Brokers, indexed by device.id
 
