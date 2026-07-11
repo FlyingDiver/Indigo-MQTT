@@ -31,4 +31,5 @@ fetchMessages.py
 
 MQTT Connector.indigoPlugin/Contents/Packages/
 
-.claude/
+.claude/*
+!.claude/settings.json
