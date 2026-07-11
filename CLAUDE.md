@@ -45,6 +45,20 @@ device type), held in `Plugin.brokers`, keyed by Indigo device ID. `deviceStartC
 `unsubscribe()`, `disconnect()` — so `plugin.py` treats them interchangeably regardless of which
 underlying client library is in use.
 
+Broker failure handling is done at the coordination layer in `plugin.py`, not per broker class, so the
+invariant is: **a broker is in `self.brokers` only if its constructor fully succeeded.** `deviceStartComm`
+wraps `broker_class(device)` in try/except — on failure it logs, sets the device to a "Start Failed" state,
+and does *not* register anything (so a half-built broker never lands in `self.brokers`). Because a failed
+start still leaves the device comm-"started" from Indigo's view, every entry point that looks a broker up
+by id (`publishMessageAction`, `publishDeviceAction`, `addSubscription`/`delSubscription`) must use
+`self.brokers.get(...)` and degrade gracefully when it's missing — never a bare `self.brokers[id]` subscript
+(the exception is the `deviceUpdated`/`variableUpdated` publish loops, which iterate `self.brokers` so the
+key is always present; those wrap each `broker.publish()` in try/except so one broker's failure can't starve
+the others). `deviceStopComm` pops with a default and guards `disconnect()`. Note the individual broker
+classes also connect asynchronously/deferred (MQTT via a delayed `do_connect`, AIoT via `connectAsync`, DXL
+synchronously in `__init__`) and update the device `status` state on connect/refuse/disconnect — a
+successfully *constructed* broker can still be not-yet-connected or connection-refused.
+
 Inbound message flow: each broker's underlying client library invokes that broker's own callback
 (`on_message` / `onMessage` / `MyEventCallback.on_event`) on receipt, which all funnel into
 `Plugin.processReceivedMessage(devID, topic, payload)`. That single method handles:
